@@ -25,8 +25,8 @@ const stripTags = (t: string) => t.replace(/\[[^\]]{1,30}\]\s*/g, "").trim();
 
 const INTRO = [
   "hey! i'm your new personal assistant",
-  "you can text me or call me anytime and i can help with:\n📞 calling places on your behalf\n💻 browsing the web\n🛍️ shopping for you\n✉️ managing your email and calendar\n🚗 finding DoorDash or Uber options",
-  "what do you want to call me?",
+  "you can text me or call me anytime and i can help with:\n📞 talking things through on a quick call\n💻 digging through the web for answers\n🛍️ finding and comparing stuff to buy\n✉️ sorting your email and calendar\n🚗 finding DoorDash or Uber options",
+  "first things first, what should my name be?",
 ];
 const FIRST_DRAFT = "Hey, what's a persona?";
 const GREETING = /^\s*(hi+|hey+|hello+|yo+|sup|hiya|howdy|what'?s? (a |this|up|persona)|what is (a |this)|who (are|is) (you|this)|[?!.👋]+)[\s\w'?,.!👋]*$/i;
@@ -179,6 +179,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     const s0 = stateRef.current;
     const acts = new Set(reply.actions);
     if (!hadName && s0.agentName) acts.add("send_contact_card");
+    // renamed after a card was already sent → send the updated card
+    if (hadName && u.agent_name && itemsRef.current.some((i) => i.kind === "contact_card") && !itemsRef.current.some((i) => i.kind === "contact_card" && i.text === s0.agentName)) acts.add("send_contact_card");
     const wantCard = acts.has("send_contact_card") && !!s0.agentName &&
       !itemsRef.current.some((i) => i.kind === "contact_card" && i.text === s0.agentName);
     // the card goes right after the bubble that mentions it (or the first bubble)
@@ -226,8 +228,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     try {
       let reply: AgentReply | null = null;
       // research can take a while: after ~5s of silence, acknowledge like a person would
-      const ack = ev.type === "user_message" ? setTimeout(() => {
-        const lines = ["on it, one sec", "looking now", "give me a sec, checking", "one sec, digging in"];
+      const ack = ev.type === "user_message" || ev.type === "call_ended" ? setTimeout(() => {
+        const lines = ev.type === "call_ended" ? ["good talking! pulling that together now", "one sec, putting that together"] : ["on it, one sec", "looking now", "give me a sec, checking", "one sec, digging in"];
         void say([lines[Math.floor(Math.random() * lines.length)]]).then(() => setTyping(true));
       }, 5500) : undefined;
       for (let attempt = 0; attempt < 2 && !reply; attempt++) {

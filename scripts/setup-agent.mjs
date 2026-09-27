@@ -59,7 +59,8 @@ async function upsertTools() {
       // saving facts shouldn't block the reply; link/status tools must wait for their answer
       expects_response: !t.name.startsWith("save_"),
       // say a quick "sending it now" while the link tool runs, so the line never goes silent
-      pre_tool_speech: t.name === "send_google_link" ? "force" : "auto",
+      // only the link tool gets filler speech; "auto" on silent tools produced odd narration (even in German)
+      pre_tool_speech: t.name === "send_google_link" ? "force" : "off",
       response_timeout_secs: 10,
     };
     const found = (existing.tools || []).find((x) => x.tool_config?.name === t.name);
@@ -105,6 +106,8 @@ async function main() {
       stability: 0.45,
       similarity_boost: 0.8,
       speed: 1.02,
+      expressive_mode: false, // don't auto-inject [warm]/[thinking]-style audio tags
+      suggested_audio_tags: [],
     },
     turn: {
       turn_timeout: 8,

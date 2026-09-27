@@ -28,7 +28,7 @@ async function main() {
       name,
       description,
       response_timeout_secs: 15,
-      pre_tool_speech: name === "phone_send_google_link" ? "force" : "auto",
+      pre_tool_speech: name === "phone_send_google_link" ? "force" : "off",
       api_schema: {
         url: `${APP}/api/voice/tool/${name.replace("phone_", "")}`,
         method: "POST",
@@ -65,6 +65,8 @@ async function main() {
       model_id: "eleven_v3_conversational",
       voice_id: "cgSgspJ2msm6clMCkdW9",
       stability: 0.45, similarity_boost: 0.8, speed: 1.02,
+      expressive_mode: false,
+      suggested_audio_tags: [],
       agent_output_audio_format: "ulaw_8000",
     },
     asr: { user_input_audio_format: "ulaw_8000" },
