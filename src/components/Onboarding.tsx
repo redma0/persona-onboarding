@@ -556,10 +556,14 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     }
     setEntered(true);
     const at = Date.now();
+    // the scenario from Persona's launch video: landing and needing a ride, suitcase in hand
     const demo: ChatItem[] = [
-      { id: "demo-band-1", role: "agent", kind: "text", at, text: "side note: this is exactly what persona band is for. next time you're driving or your hands are full, just say it to your wrist and approve with a tap" },
-      { id: "demo-band-2", role: "agent", kind: "text", at: at + 1, text: "here's a quick look if you're curious, no pressure" },
-      { id: "demo-band-3", role: "agent", kind: "band_card", at: at + 2 },
+      { id: "demo-band-0", role: "user", kind: "text", at: at - 3, text: "just landed at jfk. can you get me an uber to the doubletree in midtown?" },
+      { id: "demo-band-1", role: "agent", kind: "text", at: at - 2, text: "welcome back! i can't book the ride myself yet, but uber's the move: about 45 min to midtown right now, usually $70–90 before tip" },
+      { id: "demo-band-2", role: "agent", kind: "text", at: at - 1, text: "pickup's on the arrivals level, follow the rideshare signs from baggage claim" },
+      { id: "demo-band-3", role: "agent", kind: "text", at, text: "also, this exact moment is what persona band is for. suitcase in one hand, phone buried: just flick your wrist and say \"get me to the hotel\"" },
+      { id: "demo-band-4", role: "agent", kind: "text", at: at + 1, text: "it's not always listening either, the mic only turns on when you tap it. here's a look if you're curious" },
+      { id: "demo-band-5", role: "agent", kind: "band_card", at: at + 2 },
     ];
     itemsRef.current = [...itemsRef.current, ...demo];
     setItemsRaw(itemsRef.current);
