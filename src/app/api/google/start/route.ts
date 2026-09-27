@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: `${origin}/api/google/callback`,
     response_type: "code",
-    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+    scope: "openid email profile https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/calendar.readonly",
     access_type: "offline",
     include_granted_scopes: "true",
     prompt: "select_account consent",

@@ -57,7 +57,7 @@ async function upsertTools() {
       description: t.description,
       parameters: t.parameters,
       // saving facts shouldn't block the reply; link/status tools must wait for their answer
-      expects_response: !t.name.startsWith("save_"),
+      expects_response: true, // non-blocking saves caused the model to occasionally repeat its line
       // say a quick "sending it now" while the link tool runs, so the line never goes silent
       // only the link tool gets filler speech; "auto" on silent tools produced odd narration (even in German)
       pre_tool_speech: t.name === "send_google_link" ? "force" : "off",
@@ -87,7 +87,7 @@ async function main() {
       prompt: {
         prompt: BASE_PROMPT,
         llm: process.env.VOICE_LLM || "claude-sonnet-5",
-        reasoning_effort: "none",
+        reasoning_effort: process.env.VOICE_REASONING || "low", // "none" made Sonnet occasionally write tool calls as spoken text
         temperature: 0.6,
         tool_ids: toolIds,
         built_in_tools: {

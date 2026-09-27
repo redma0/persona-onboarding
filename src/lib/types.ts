@@ -17,6 +17,8 @@ export interface OnboardingState {
   bandShown?: boolean;
   /** true once the user picks a voice by hand; otherwise the voice follows the agent's name */
   voiceLocked?: boolean;
+  /** how many times each onboarding item has been asked (see lib/onboarding.ts) */
+  attempts?: Partial<Record<"agent_name" | "call" | "user_name" | "help_need" | "google", number>>;
 }
 
 export type ItemKind = "text" | "contact_card" | "google_link" | "call_log" | "divider" | "band_card";
@@ -54,6 +56,10 @@ export interface AgentReply {
   /** user asked the assistant to actually do something substantive */
   task_request: boolean;
   declined_band: boolean;
+  /** onboarding items the agent actually asked for / offered in this turn */
+  asked: ("agent_name" | "call" | "user_name" | "help_need" | "google")[];
+  /** user clearly wants to stop doing setup and just use it */
+  skip_setup: boolean;
 }
 
 export const VOICES = [

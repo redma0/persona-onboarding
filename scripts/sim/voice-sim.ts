@@ -6,6 +6,7 @@ import { buildFirstMessage, buildVoicePrompt } from "../../src/lib/prompts";
 import { initialState } from "../../src/lib/types";
 import { VOICE_PERSONAS } from "./personas.mjs";
 import { judge } from "./judge.mjs";
+import { report } from "./cost.mjs";
 
 const H = { "xi-api-key": process.env.ELEVENLABS_API_KEY!, "content-type": "application/json" };
 const api = async (m: string, p: string, b?: unknown) => {
@@ -74,4 +75,5 @@ async function run(p: { id: string; prompt: string }) {
   const out = process.env.SIM_OUT || "sim-voice-results.json";
   fs.writeFileSync(out, JSON.stringify(results, null, 2));
   console.log(`wrote ${out}`);
+  console.log(report());
 })();

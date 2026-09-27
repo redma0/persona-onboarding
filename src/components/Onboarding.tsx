@@ -12,6 +12,7 @@ import { StartScreen } from "./persona-ui";
 import { ContactCard, GoogleLinkCard } from "./ui";
 import { AppClipCard, BandClip, BandLink } from "./band";
 import { award, bandUnlocked, score } from "@/lib/engagement";
+import { canGraduate, recordAsked } from "@/lib/onboarding";
 import { ActiveCall, CallPill, IncomingCall, useClock } from "./Call";
 import { SidePanel } from "./SidePanel";
 
@@ -29,7 +30,7 @@ const INTRO = [
   "first things first, what should my name be?",
 ];
 const FIRST_DRAFT = "Hey, what's a persona?";
-const GREETING = /^\s*(hi+|hey+|hello+|yo+|sup|hiya|howdy|what'?s? (a |this|up|persona)|what is (a |this)|who (are|is) (you|this)|[?!.👋]+)[\s\w'?,.!👋]*$/i;
+const GREETING = /^\s*(hi+|hey+|hello+|yo+|sup|hiya|howdy)?[\s,!.]*((what'?s|what is|who'?s|who is) (a |an |this|that|up|persona|you)[\w\s]*)?[\s?!.👋]*$/i;
 
 type CallUI = "none" | "incoming" | "active";
 
@@ -174,6 +175,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       if (n.userName && !s.userName) n = award(n, "user_name");
       if (n.helpNeed && !s.helpNeed) n = award(n, "help_need");
       if (reply.task_request && ev.type === "user_message") n = award(n, "task");
+      n = recordAsked(n, reply.asked ?? [], !!reply.skip_setup);
       return n;
     });
     const s0 = stateRef.current;
@@ -193,13 +195,16 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     if (reply.messages.length > k) await say(reply.messages.slice(k), false);
 
     const s = stateRef.current;
-    if (acts.has("send_google_link") && s.google.status !== "connected") {
+    const recentLink = itemsRef.current.slice(-8).some((i) => i.kind === "google_link");
+    const userAskedLink = /link|resend|send (it|again)|can'?t find|don'?t see/i.test([...itemsRef.current].reverse().find((i) => i.role === "user")?.text ?? "");
+    if (acts.has("send_google_link") && s.google.status !== "connected" && (!recentLink || userAskedLink)) {
       await sleep(250);
       addItem({ role: "agent", kind: "google_link" });
       patch((x) => ({ ...x, google: { ...x.google, status: "link_sent" } }));
     }
     if (acts.has("start_call") && callUIRef.current === "none") setTimeout(() => ringRef.current(), 1300);
-    if (acts.has("graduate")) graduate();
+    // graduation is gated: every onboarding item collected, attempted twice, or declined (or they asked to skip)
+    if (acts.has("graduate") || canGraduate(stateRef.current)) { if (canGraduate(stateRef.current) || (reply.skip_setup && stateRef.current.agentName)) graduate(); }
     // Band upsell: only sent in response to the app's own band_moment event (the gate lives here, not in the model)
     if (acts.has("send_band") && ev.type === "band_moment" && !stateRef.current.bandShown) {
       await sleep(400);
@@ -530,6 +535,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         await sleep(1100);
         await say(INTRO.slice(0, 1));
         await say(INTRO.slice(1), false);
+        patch((s) => recordAsked(s, ["agent_name"], false));
         busy.current = false;
         if (pending.current) { const p = pending.current; pending.current = null; void runAgent(p); }
       }, 500);

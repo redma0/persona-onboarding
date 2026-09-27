@@ -5,6 +5,7 @@ import { runTextAgent, inboxDigest } from "./agent";
 import { sendMedia, sendText, sendTyping } from "./sendblue";
 import { placeCall, twilioConfigured } from "./twilio";
 import { freshAccessToken, seal, unseal, type GoogleSession, googleConfigured } from "./session";
+import { canGraduate, recordAsked } from "./onboarding";
 import { initialState, VOICE_FOR, type AgentEvent, type AgentReply, type ChatItem, type OnboardingState } from "./types";
 
 export const APP = () => process.env.APP_URL || "https://persona-onboarding-riyad.vercel.app";
@@ -131,6 +132,7 @@ async function deliver(phone: string, reply: AgentReply, ev: AgentEvent) {
     x.state.userName = cap(clean(up.user_name)) ?? x.state.userName;
     x.state.helpNeed = clean(up.help_need, 200) ?? x.state.helpNeed;
     if (up.agent_voice && !x.state.voiceLocked) x.state.voiceId = VOICE_FOR[up.agent_voice];
+    x.state = recordAsked(x.state, reply.asked ?? [], !!reply.skip_setup);
     x.state.declined = {
       call: x.state.declined.call || reply.declined_call,
       google: x.state.declined.google || reply.declined_google,
@@ -152,13 +154,14 @@ async function deliver(phone: string, reply: AgentReply, ev: AgentEvent) {
   }
 
   const s = (await load(phone))!.state;
-  if (acts.has("send_google_link") && s.google.status !== "connected") await sendGoogleLink(phone);
+  const recentLink = u.items.slice(-8).some((i) => i.kind === "google_link");
+  if (acts.has("send_google_link") && s.google.status !== "connected" && !recentLink) await sendGoogleLink(phone);
   if (acts.has("start_call") && twilioConfigured()) await startCall(phone);
   if (acts.has("send_band") && ev.type === "band_moment" && !s.bandShown) {
     await sendText(phone, "https://yourpersona.com/band");
     await update(phone, (x) => { x.state.bandShown = true; x.items.push(item({ role: "agent", kind: "band_card" })); });
   }
-  if (acts.has("graduate") && !s.graduated) await update(phone, (x) => { x.state.graduated = true; });
+  if (!s.graduated && (canGraduate(s) || (acts.has("graduate") && reply.skip_setup && s.agentName))) await update(phone, (x) => { x.state.graduated = true; });
   if ((acts.has("send_inbox_summary") || ev.type === "google_connected" || ev.type === "call_ended") && s.google.status === "connected" && !s.summarySent) {
     await sleep(800);
     await inboxSummary(phone);

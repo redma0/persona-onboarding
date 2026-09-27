@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { TEXT_SYSTEM_PROMPT, describeState } from "./prompts";
+import { planForPrompt } from "./onboarding";
 import type { AgentEvent, AgentReply, ChatItem, OnboardingState } from "./types";
 
 const client = new Anthropic();
@@ -21,6 +22,8 @@ const ReplySchema = z.object({
   band_moment: z.boolean(),
   task_request: z.boolean(),
   declined_band: z.boolean(),
+  asked: z.array(z.enum(["agent_name", "call", "user_name", "help_need", "google"])),
+  skip_setup: z.boolean(),
 });
 
 export type Channel = "web" | "imessage";
@@ -64,13 +67,18 @@ const CHANNEL_NOTE: Record<Channel, string> = {
 const INTERNAL = /(^\[|\]$|\bjson\b|function call|tool call|tool_|system prompt|stop_reason|status code|\bundefined\b)/i;
 
 /** Gmail access for tools; `get` performs an authorized GET against gmail/v1/users/me/<path>. */
-export interface GmailCtx { get: (path: string) => Promise<Response> }
+export interface GmailCtx { get: (path: string) => Promise<Response>; calendar: (path: string) => Promise<Response> }
 
 const GMAIL_TOOLS: Anthropic.Tool[] = [
   {
     name: "gmail_search",
     description: "Search the user's Gmail (Gmail search syntax, e.g. 'from:sarah term sheet newer_than:7d'). Returns sender, subject, date, snippet and id for up to 8 messages.",
     input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
+  {
+    name: "calendar_events",
+    description: "List events on the user's primary Google Calendar between two ISO datetimes (e.g. to find free time). Returns start, end, title.",
+    input_schema: { type: "object", properties: { time_min: { type: "string" }, time_max: { type: "string" } }, required: ["time_min", "time_max"] },
   },
   {
     name: "gmail_read",
@@ -103,6 +111,13 @@ async function runGmailTool(g: GmailCtx, name: string, input: Record<string, str
     }));
     return rows.join("\n");
   }
+  if (name === "calendar_events") {
+    const q = new URLSearchParams({ timeMin: new Date(input.time_min).toISOString(), timeMax: new Date(input.time_max).toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "50" });
+    const r = await g.calendar(`calendars/primary/events?${q}`);
+    if (!r.ok) return `calendar error ${r.status}`;
+    const items: { summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string } }[] = (await r.json()).items ?? [];
+    return items.map((e) => `${e.start?.dateTime ?? e.start?.date} → ${e.end?.dateTime ?? e.end?.date} | ${e.summary ?? "(busy)"}`).join("\n") || "no events in that range";
+  }
   if (name === "gmail_read") {
     const r = await g.get(`messages/${encodeURIComponent(input.id ?? "")}?format=full`);
     if (!r.ok) return `gmail error ${r.status}`;
@@ -120,12 +135,11 @@ export async function runTextAgent(
   channel: Channel = "web",
   gmail?: GmailCtx,
 ): Promise<AgentReply | null> {
-  const caps = `Tools available now: web_search (live web)${gmail ? ", gmail_search + gmail_read (their real inbox)" : " (Gmail tools unavailable: not connected or demo mode)"}.`;
-  const user = `<channel>${CHANNEL_NOTE[channel]} ${caps}</channel>\n\n<state>\n${describeState(state)}\n</state>\n\n<thread>\n${renderThread(items)}\n</thread>\n\n<event>\n${describeEvent(event)}\n</event>\n\nWrite your next turn.`;
-  const tools: Anthropic.Messages.ToolUnion[] = [
-    { type: "web_search_20260209", name: "web_search", max_uses: 3 },
-    ...(gmail ? GMAIL_TOOLS : []),
-  ];
+  const caps = `Tools available now: web_search (live web)${gmail ? ", gmail_search + gmail_read (their real inbox), calendar_events (their real calendar). Today is " + new Date().toDateString() : " (Gmail/Calendar tools unavailable: not connected)"}.`;
+  const user = `<channel>${CHANNEL_NOTE[channel]} ${caps}</channel>\n\n<state>\n${describeState(state)}\n</state>\n\n<onboarding_plan>\n${planForPrompt(state)}\n</onboarding_plan>\n\n<thread>\n${renderThread(items)}\n</thread>\n\n<event>\n${describeEvent(event)}\n</event>\n\nWrite your next turn.`;
+  // Keep the tool list identical on every call so tools+system stay in the prompt cache.
+  const tools: Anthropic.Messages.ToolUnion[] = [{ type: "web_search_20260209", name: "web_search", max_uses: 2 }, ...GMAIL_TOOLS];
+  const usage = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0, searches: 0 };
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
 
   for (let step = 0; step < 6; step++) {
@@ -137,6 +151,11 @@ export async function runTextAgent(
       tools,
       messages,
     });
+    usage.input += res.usage.input_tokens;
+    usage.cacheRead += res.usage.cache_read_input_tokens ?? 0;
+    usage.cacheWrite += res.usage.cache_creation_input_tokens ?? 0;
+    usage.output += res.usage.output_tokens;
+    usage.searches += res.usage.server_tool_use?.web_search_requests ?? 0;
     if (res.stop_reason === "pause_turn") {
       messages.push({ role: "assistant", content: res.content });
       continue;
@@ -147,15 +166,17 @@ export async function runTextAgent(
       for (const b of res.content) {
         if (b.type !== "tool_use") continue;
         let out = "unavailable";
-        try { if (gmail) out = await runGmailTool(gmail, b.name, b.input as Record<string, string>); } catch (e) { out = `error: ${String(e).slice(0, 200)}`; }
+        try { out = gmail ? await runGmailTool(gmail, b.name, b.input as Record<string, string>) : "not connected: Google isn't connected for this user, so you can't see their email or calendar."; } catch (e) { out = `error: ${String(e).slice(0, 200)}`; }
         results.push({ type: "tool_result", tool_use_id: b.id, content: out });
       }
       messages.push({ role: "user", content: results });
       continue;
     }
-    const out = res.parsed_output as AgentReply | null;
+    const out = res.parsed_output as (AgentReply & { usage?: typeof usage }) | null;
     if (!out) return null;
-    out.messages = out.messages.map((m) => m.trim()).filter((m) => m && !INTERNAL.test(m)).slice(0, 4);
+    out.usage = usage;
+    const msgs = out.messages.map((m) => m.trim().replace(/^[.,;:]+\s*/, "")).filter((m) => m && !INTERNAL.test(m));
+    out.messages = msgs.length > 4 ? [...msgs.slice(0, 3), msgs.slice(3).join("\n\n")] : msgs;
     return out;
   }
   return null;

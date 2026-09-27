@@ -53,7 +53,7 @@ async function main() {
       prompt: {
         prompt: "Per-call prompt is provided via override.",
         llm: process.env.VOICE_LLM || "claude-sonnet-5",
-        reasoning_effort: "none",
+        reasoning_effort: process.env.VOICE_REASONING || "low", // "none" made Sonnet occasionally write tool calls as spoken text
         temperature: 0.6,
         tool_ids: ids,
         built_in_tools: {
