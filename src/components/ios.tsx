@@ -1,6 +1,6 @@
 "use client";
 // iOS 26 (Liquid Glass) building blocks for the simulated phone.
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { AgentAvatar } from "./persona-ui";
 
 export const Sym = {
@@ -134,6 +134,16 @@ export const InputBar = forwardRef<HTMLTextAreaElement, {
   value: string; onChange: (v: string) => void; onSend: () => void;
 }>(function InputBar({ value, onChange, onSend }, ref) {
   const has = value.trim().length > 0;
+  // grow with the text like iMessage (up to ~5 lines, then scroll)
+  const ta = useRef<HTMLTextAreaElement>(null);
+  useImperativeHandle(ref, () => ta.current!, []);
+  useLayoutEffect(() => {
+    const el = ta.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${Math.min(el.scrollHeight, 118)}px`;
+    el.style.overflowY = el.scrollHeight > 118 ? "auto" : "hidden";
+  }, [value]);
   return (
     <div className="absolute inset-x-0 bottom-0 z-30">
       <div className="edge-bottom absolute inset-x-0 bottom-0 h-[110px] pointer-events-none" />
@@ -141,13 +151,13 @@ export const InputBar = forwardRef<HTMLTextAreaElement, {
         <Glass className="w-[40px] h-[40px] shrink-0 rounded-full grid place-items-center text-[#3c3c43]">{Sym.plus(17)}</Glass>
         <Glass className="flex-1 min-h-[40px] rounded-[20px] flex items-end pl-[14px] pr-[5px] py-[5px]">
           <textarea
-            ref={ref}
+            ref={ta}
             rows={1}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(); } }}
             placeholder="iMessage"
-            className="flex-1 resize-none bg-transparent outline-none text-[17px] leading-[22px] tracking-[-0.43px] py-[4px] max-h-[110px] text-black placeholder:text-[#8e8e93] caret-[#0088ff]"
+            className="flex-1 resize-none bg-transparent outline-none text-[17px] leading-[22px] tracking-[-0.43px] py-[4px] no-scrollbar text-black placeholder:text-[#8e8e93] caret-[#0088ff]"
           />
           {has ? (
             <button type="submit" aria-label="Send" className="w-[30px] h-[30px] shrink-0 rounded-full bg-[#0088ff] text-white grid place-items-center pop-in">
