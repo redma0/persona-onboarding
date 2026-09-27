@@ -10,6 +10,8 @@ import { downloadVCard } from "@/lib/vcard";
 import { DynamicIsland, HomeIndicator, IBubble, ITyping, InputBar, NavBar, StatusBar, ThreadStamp } from "./ios";
 import { StartScreen } from "./persona-ui";
 import { ContactCard, GoogleLinkCard } from "./ui";
+import { BandCard, BandSheet, QuickReplies } from "./band";
+import { award, bandUnlocked, score } from "@/lib/engagement";
 import { ActiveCall, CallPill, IncomingCall, useClock } from "./Call";
 import { SidePanel } from "./SidePanel";
 
@@ -68,6 +70,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   // ---------- ephemeral UI ----------
   const [typing, setTyping] = useState(false);
   const [entered, setEntered] = useState(false);
+  const [bandSheet, setBandSheet] = useState(false);
   const composer = useRef<HTMLTextAreaElement>(null);
   const [now0] = useState(() => Date.now());
   // desktop: scale the whole phone so it keeps real iPhone proportions at any window height
@@ -113,7 +116,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
 
   const graduate = useCallback(() => {
     if (stateRef.current.graduated) return;
-    patch((s) => ({ ...s, graduated: true }));
+    patch((s) => award({ ...s, graduated: true }, "graduated"));
     addItem({ role: "system", kind: "divider", text: "you're all set" });
   }, [patch, addItem]);
 
@@ -139,7 +142,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         await say(["hm, gmail isn't letting me in just yet. ask me for an inbox rundown in a minute and i'll try again."]);
         return;
       }
-      patch((x) => ({ ...x, summarySent: true }));
+      patch((x) => award({ ...x, summarySent: true }, d.demo ? "message" : "digest"));
       const st = stateRef.current;
       if (st.agentName && st.userName && st.helpNeed) graduate();
     } finally {
@@ -149,20 +152,29 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   }, [patch, say, graduate]);
 
   const ringRef = useRef<() => void>(() => {});
+  const bandEventRef = useRef<(score: number) => void>(() => {});
 
   const apply = useCallback(async (reply: AgentReply, ev: AgentEvent) => {
     const hadName = !!stateRef.current.agentName;
     const u = reply.updates;
-    patch((s) => ({
-      ...s,
-      agentName: cap(clean(u.agent_name)) ?? s.agentName,
-      userName: cap(clean(u.user_name)) ?? s.userName,
-      helpNeed: clean(u.help_need, 200) ?? s.helpNeed,
-      declined: {
-        call: s.declined.call || reply.declined_call,
-        google: s.declined.google || reply.declined_google,
-      },
-    }));
+    patch((s) => {
+      let n: OnboardingState = {
+        ...s,
+        agentName: cap(clean(u.agent_name)) ?? s.agentName,
+        userName: cap(clean(u.user_name)) ?? s.userName,
+        helpNeed: clean(u.help_need, 200) ?? s.helpNeed,
+        declined: {
+          call: s.declined.call || reply.declined_call,
+          google: s.declined.google || reply.declined_google,
+          band: s.declined.band || reply.declined_band,
+        },
+      };
+      if (n.agentName && !s.agentName) n = award(n, "named_agent");
+      if (n.userName && !s.userName) n = award(n, "user_name");
+      if (n.helpNeed && !s.helpNeed) n = award(n, "help_need");
+      if (reply.task_request && ev.type === "user_message") n = award(n, "task");
+      return n;
+    });
     const s0 = stateRef.current;
     const acts = new Set(reply.actions);
     if (!hadName && s0.agentName) acts.add("send_contact_card");
@@ -185,6 +197,15 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     }
     if (acts.has("start_call") && callUIRef.current === "none") setTimeout(() => ringRef.current(), 1300);
     if (acts.has("graduate")) graduate();
+    // Band upsell: only sent in response to the app's own band_moment event (the gate lives here, not in the model)
+    if (acts.has("send_band") && ev.type === "band_moment" && !stateRef.current.bandShown) {
+      await sleep(400);
+      addItem({ role: "agent", kind: "band_card" });
+      patch((x) => ({ ...x, bandShown: true }));
+    }
+    if (ev.type === "user_message" && reply.band_moment && bandUnlocked(stateRef.current)) {
+      bandEventRef.current(score(stateRef.current));
+    }
     if (
       (acts.has("send_inbox_summary") || ev.type === "google_connected" || ev.type === "call_ended") &&
       stateRef.current.google.status === "connected" && !stateRef.current.summarySent && callUIRef.current === "none"
@@ -249,7 +270,12 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     setCaption(undefined);
     const dur = c.startedAt ? Math.round((Date.now() - c.startedAt) / 1000) : 0;
     const name = stateRef.current.agentName || "Persona";
-    patch((s) => ({ ...s, call: { status: "ended", count: s.call.count + 1, lastEnd: reason } }));
+    patch((s) => {
+      let n: OnboardingState = { ...s, call: { status: "ended", count: s.call.count + 1, lastEnd: reason } };
+      if (dur >= 20) n = award(n, "call_done");
+      if (dur >= 60) n = award(n, "long_call");
+      return n;
+    });
     addItem({ role: "system", kind: "call_log", text: dur ? `Call with ${name} · ${Math.floor(dur / 60)}:${String(dur % 60).padStart(2, "0")}` : "Call ended" });
     void runAgent({ type: "call_ended", reason, durationSec: dur, transcript: c.lines.join("\n") });
   }, [patch, addItem, runAgent]);
@@ -384,6 +410,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     }, 25000);
   }, [patch, addItem, runAgent]);
   useEffect(() => { ringRef.current = ring; }, [ring]);
+  useEffect(() => { bandEventRef.current = (score) => void runAgent({ type: "band_moment", score }); }, [runAgent]);
 
   const decline = () => {
     stopRing();
@@ -409,7 +436,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       return;
     }
     if (s.google.status === "connected" && s.google.email === p.email) return;
-    patch((x) => ({ ...x, google: { status: "connected", email: p.email, name: p.name, demo: p.demo } }));
+    patch((x) => award({ ...x, google: { status: "connected", email: p.email, name: p.name, demo: p.demo } }, "google"));
     setBanner(false);
     if (callUIRef.current === "active" && connectedRef.current) {
       convo.sendContextualUpdate(
@@ -474,11 +501,12 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   }, [items, state.graduated, callUI, typing, runAgent]);
 
   // ---------- sending ----------
-  const send = () => {
-    const text = draft.trim();
+  const send = (override?: string) => {
+    const text = (override ?? draft).trim();
     if (!text) return;
-    setDraft("");
+    if (!override) setDraft("");
     addItem({ role: "user", kind: "text", text: text.slice(0, 2000) });
+    patch((s) => award(s, "message"));
     if (callUIRef.current === "active" && connectedRef.current) {
       convo.sendContextualUpdate(`While on the call, the user also texted: "${text}". Respond to it naturally out loud if relevant.`);
       return;
@@ -574,6 +602,14 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
                     state={state.google.status === "connected" ? "connected" : googleWaiting && it.id === lastLinkId ? "waiting" : "idle"}
                   />
                 )}
+                {it.kind === "band_card" && (
+                  <>
+                    <BandCard onOpen={() => setBandSheet(true)} />
+                    {idx === items.length - 1 && !typing && (
+                      <QuickReplies options={["Tell me more", "Not right now"]} onPick={(t) => send(t)} />
+                    )}
+                  </>
+                )}
                 {(it.kind === "call_log" || it.kind === "divider") && (
                   <ThreadStamp bottom={it.kind === "divider" ? "You're all set" : it.text!} />
                 )}
@@ -583,7 +619,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
           {typing && <div className="mt-[10px] mb-[4px]"><ITyping /></div>}
         </div>
 
-        {started && <InputBar ref={composer} value={draft} onChange={setDraft} onSend={send} />}
+        {started && <InputBar ref={composer} value={draft} onChange={setDraft} onSend={() => send()} />}
+        <BandSheet open={bandSheet} onClose={() => setBandSheet(false)} />
         <HomeIndicator tone={callUI !== "none" && !minimized ? "light" : "dark"} />
 
         {callUI === "incoming" && <IncomingCall name={name} onAccept={() => connect(false)} onDecline={decline} />}
@@ -612,6 +649,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         voices={VOICES}
         onVoice={(id) => patch((s) => ({ ...s, voiceId: id }))}
         onReset={reset}
+        commitment={score(state)}
+        bandShown={!!state.bandShown}
       />
       </div>
     </div>

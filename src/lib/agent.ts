@@ -14,9 +14,12 @@ const ReplySchema = z.object({
     user_name: z.string().nullable(),
     help_need: z.string().nullable(),
   }),
-  actions: z.array(z.enum(["send_contact_card", "start_call", "send_google_link", "graduate", "send_inbox_summary"])),
+  actions: z.array(z.enum(["send_contact_card", "start_call", "send_google_link", "graduate", "send_inbox_summary", "send_band"])),
   declined_call: z.boolean(),
   declined_google: z.boolean(),
+  band_moment: z.boolean(),
+  task_request: z.boolean(),
+  declined_band: z.boolean(),
 });
 
 export type Channel = "web" | "imessage";
@@ -29,6 +32,7 @@ function renderThread(items: ChatItem[]) {
       if (i.kind === "google_link") return "[you sent the Connect with Google link]";
       if (i.kind === "call_log") return `[call: ${i.text}]`;
       if (i.kind === "divider") return `[${i.text}]`;
+      if (i.kind === "band_card") return "[you sent the Persona Band card]";
       return `${i.role === "user" ? "USER" : "YOU"}: ${i.text}`;
     })
     .join("\n");
@@ -42,6 +46,8 @@ function describeEvent(e: AgentEvent) {
       return `call_ended — reason: ${e.reason}; duration: ${e.durationSec}s.\nCall transcript:\n${e.transcript || "(nothing was said)"}`;
     case "call_failed":
       return `call_failed — ${e.reason}`;
+    case "band_moment":
+      return `band_moment — you already answered their latest message. They're a committed user (commitment score ${e.score}), and what they just asked for is exactly what Persona Band is for. Now introduce the Band: 1–2 short bubbles that tie THEIR specific situation to the Band (quote their scenario, e.g. "next time you're driving you could just say it to your wrist"). Then include send_band. Warm, not salesy, no hard sell, no emojis.`;
     default:
       return e.type;
   }

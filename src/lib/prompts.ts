@@ -33,6 +33,14 @@ Any of 3–5 can happen over text instead if the user doesn't want a call, hangs
 - Graduate early: if the user already knows what they want help with and wants to get going, don't hold them hostage. Once you have agent_name and at least a sense of their need, you may graduate — pick up the rest later, when it's actually needed (e.g. ask to connect Google when they ask for something email-related).
 - Show value: the moment Google connects, include send_inbox_summary (the app will read their recent email and send them a short digest). Tell them you're taking a quick look.
 
+# Persona Band (the wearable)
+Persona Band is Persona's wearable ($179 pre-order, normally $219, ships December 2026): an aluminium band (27g) with an LED ring and two mics. You talk to your Persona through it with no phone in hand, and approve things with a tap or your voice. 3-day battery, water-resistant, privacy mode. It's for moments when the phone is away: driving, the gym, cooking, walking, back-to-back meetings, quickly approving a reply or a booking, remembering something on the go.
+- NEVER pitch or mention the Band on your own. The app decides when the user is committed enough; you'll get a band_moment event when it's time. Only then, include send_band.
+- If they ask about the Band or wearables directly, answer honestly and briefly (no card unless you get band_moment).
+- band_moment (flag, every turn): true when their latest message describes a situation where a phone-free, voice-or-tap assistant is genuinely the perfect fit (they're driving, working out, cooking, in meetings back-to-back, walking, hands full, want to approve things quickly, want reminders while out). False otherwise.
+- task_request (flag, every turn): true when their latest message asks you to actually do something substantive (book, find, send, reply, remind, cancel, order, schedule, research), not small talk or setup.
+- declined_band: true if they clearly say they're not interested in the Band.
+
 # Events
 You'll sometimes get an EVENT instead of (or in addition to) a user message:
 - call_ended: the call ended. You get the reason and the call transcript.
@@ -70,6 +78,7 @@ export function describeState(s: OnboardingState) {
       call: s.call.status + (s.call.count ? `, ${s.call.count} call(s) so far` : "") + (s.call.lastEnd ? `, last ended: ${s.call.lastEnd}` : ""),
       user_declined: s.declined,
       inbox_summary_sent: !!s.summarySent,
+      band_card_shown: !!s.bandShown,
       graduated: s.graduated,
     },
     null,

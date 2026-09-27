@@ -10,11 +10,14 @@ export interface OnboardingState {
   graduated: boolean;
   voiceId: string;
   /** things the user explicitly said no to (so we don't nag) */
-  declined: { call?: boolean; google?: boolean };
+  declined: { call?: boolean; google?: boolean; band?: boolean };
   summarySent?: boolean;
+  /** commitment score (see lib/engagement.ts) */
+  engagement?: { points: number; counts: Record<string, number> };
+  bandShown?: boolean;
 }
 
-export type ItemKind = "text" | "contact_card" | "google_link" | "call_log" | "divider";
+export type ItemKind = "text" | "contact_card" | "google_link" | "call_log" | "divider" | "band_card";
 
 export interface ChatItem {
   id: string;
@@ -33,9 +36,10 @@ export type AgentEvent =
   | { type: "call_missed" }
   | { type: "call_failed"; reason: string }
   | { type: "google_connected" }
-  | { type: "nudge" };
+  | { type: "nudge" }
+  | { type: "band_moment"; score: number };
 
-export type AgentAction = "send_contact_card" | "start_call" | "send_google_link" | "graduate" | "send_inbox_summary";
+export type AgentAction = "send_contact_card" | "start_call" | "send_google_link" | "graduate" | "send_inbox_summary" | "send_band";
 
 export interface AgentReply {
   messages: string[];
@@ -43,6 +47,11 @@ export interface AgentReply {
   actions: AgentAction[];
   declined_call: boolean;
   declined_google: boolean;
+  /** user's latest message is a situation the Band is perfect for */
+  band_moment: boolean;
+  /** user asked the assistant to actually do something substantive */
+  task_request: boolean;
+  declined_band: boolean;
 }
 
 export const VOICES = [

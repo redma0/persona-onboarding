@@ -1,10 +1,13 @@
 "use client";
 import type { OnboardingState } from "@/lib/types";
 import { Wordmark } from "./brand";
+import { BAND_THRESHOLD } from "@/lib/engagement";
 
 export function SidePanel({
-  state, googleConfigured, voices, onVoice, onReset,
+  state, googleConfigured, voices, onVoice, onReset, commitment, bandShown,
 }: {
+  commitment: number;
+  bandShown: boolean;
   state: OnboardingState;
   googleConfigured: boolean;
   voices: { id: string; label: string; desc: string }[];
@@ -42,6 +45,15 @@ export function SidePanel({
         <img src="/persona/imessage.svg" alt="" width={24} height={24} /> Start over
       </button>
       <span className="mt-[14px] text-[13px] text-[#8a8a8a]">Google sign-in: {googleConfigured ? "live" : "demo mode"}</span>
+      <div className="mt-[26px] w-[240px]" title="Points for real usage. The Band is only offered past the threshold, and only when you ask for something it's perfect for.">
+        <div className="flex justify-between text-[11px] uppercase tracking-[0.12em] text-[#8a8a8a]">
+          <span>Commitment</span>
+          <span className="tabular-nums">{bandShown ? "Band offered" : `${Math.min(commitment, BAND_THRESHOLD)} / ${BAND_THRESHOLD}`}</span>
+        </div>
+        <div className="mt-[6px] h-[4px] rounded-full bg-black/[0.07] overflow-hidden">
+          <div className="h-full rounded-full bg-[#111] transition-all duration-700" style={{ width: `${Math.min(100, (commitment / BAND_THRESHOLD) * 100)}%` }} />
+        </div>
+      </div>
     </aside>
   );
 }
