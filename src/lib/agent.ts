@@ -47,7 +47,7 @@ function describeEvent(e: AgentEvent) {
     case "call_failed":
       return `call_failed — ${e.reason}`;
     case "band_moment":
-      return `band_moment — you already answered their latest message. They're a committed user (commitment score ${e.score}), and what they just asked for is exactly what Persona Band is for. Now introduce the Band: 1–2 short bubbles that tie THEIR specific situation to the Band (quote their scenario, e.g. "next time you're driving you could just say it to your wrist"). Then include send_band. Warm, not salesy, no hard sell, no emojis.`;
+      return `band_moment — you already answered their latest message. They're a committed user (commitment score ${e.score}), and what they just asked for is exactly what Persona Band is for. Now introduce the Band: 1–2 short bubbles that tie THEIR specific situation to the Band (quote their scenario, e.g. "next time you're driving you could just say it to your wrist"). Then include send_band (it sends the yourpersona.com/band link, which shows as a rich preview they can tap). Warm, not salesy, no hard sell, no emojis. Don't offer buttons or options; if you invite a reply, keep it natural ("just ask if you want the details").`;
     default:
       return e.type;
   }

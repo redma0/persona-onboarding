@@ -10,7 +10,7 @@ import { downloadVCard } from "@/lib/vcard";
 import { DynamicIsland, HomeIndicator, IBubble, ITyping, InputBar, NavBar, StatusBar, ThreadStamp } from "./ios";
 import { StartScreen } from "./persona-ui";
 import { ContactCard, GoogleLinkCard } from "./ui";
-import { BandCard, BandSheet, QuickReplies } from "./band";
+import { AppClipCard, BandClip, BandLink } from "./band";
 import { award, bandUnlocked, score } from "@/lib/engagement";
 import { ActiveCall, CallPill, IncomingCall, useClock } from "./Call";
 import { SidePanel } from "./SidePanel";
@@ -70,7 +70,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   // ---------- ephemeral UI ----------
   const [typing, setTyping] = useState(false);
   const [entered, setEntered] = useState(false);
-  const [bandSheet, setBandSheet] = useState(false);
+  const [bandSheet, setBandSheet] = useState<"card" | "clip" | null>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
   const [now0] = useState(() => Date.now());
   // desktop: scale the whole phone so it keeps real iPhone proportions at any window height
@@ -536,7 +536,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       itemsRef.current = itemsRef.current.filter((i) => !i.id.startsWith("demo-band"));
       setItemsRaw(itemsRef.current);
       persist();
-      setBandSheet(false);
+      setBandSheet(null);
       return;
     }
     setEntered(true);
@@ -604,7 +604,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
           {items.map((it, idx) => {
             const next = items[idx + 1];
             const prev = items[idx - 1];
-            const tail = !next || next.role !== it.role || next.kind !== "text";
+            const tail = !next || next.role !== it.role || !["text", "band_card"].includes(next.kind);
             const gap = !prev ? "" : prev.role !== it.role || prev.kind !== it.kind ? "mt-[10px]" : "mt-[2px]";
             const isLastUser = idx === lastUserIdx;
             return (
@@ -625,12 +625,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
                   />
                 )}
                 {it.kind === "band_card" && (
-                  <>
-                    <BandCard onOpen={() => setBandSheet(true)} />
-                    {idx === items.length - 1 && !typing && (
-                      <QuickReplies options={["Tell me more", "Not right now"]} onPick={(t) => send(t)} />
-                    )}
-                  </>
+                  <BandLink onOpen={() => setBandSheet("card")} />
                 )}
                 {(it.kind === "call_log" || it.kind === "divider") && (
                   <ThreadStamp bottom={it.kind === "divider" ? "You're all set" : it.text!} />
@@ -642,7 +637,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         </div>
 
         {started && <InputBar ref={composer} value={draft} onChange={setDraft} onSend={() => send()} />}
-        <BandSheet open={bandSheet} onClose={() => setBandSheet(false)} />
+        <AppClipCard open={bandSheet === "card"} onClose={() => setBandSheet((v) => (v === "card" ? null : v))} onView={() => setBandSheet("clip")} />
+        <BandClip open={bandSheet === "clip"} onClose={() => setBandSheet(null)} />
         <HomeIndicator tone={callUI !== "none" && !minimized ? "light" : "dark"} />
 
         {callUI === "incoming" && <IncomingCall name={name} onAccept={() => connect(false)} onDecline={decline} />}

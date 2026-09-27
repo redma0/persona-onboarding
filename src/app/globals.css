@@ -158,3 +158,8 @@ body {
   0%, 60%, 100% { opacity: 0.35; transform: scale(0.9); }
   30% { opacity: 0.9; transform: scale(1); }
 }
+
+/* iMessage rich link bubble (image + title/domain strip, with tail) */
+.richlink { position: relative; isolation: isolate; width: 266px; border-radius: 18px; background: #e9e9eb; }
+.richlink::before { content: ""; position: absolute; z-index: -1; bottom: 0; left: -7px; height: 20px; width: 20px; background: #e9e9eb; border-bottom-right-radius: 16px 14px; }
+.richlink::after { content: ""; position: absolute; z-index: -1; bottom: 0; left: -26px; height: 20px; width: 26px; background: #fff; border-bottom-right-radius: 10px; }

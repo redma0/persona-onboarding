@@ -153,6 +153,10 @@ async function deliver(phone: string, reply: AgentReply, ev: AgentEvent) {
   const s = (await load(phone))!.state;
   if (acts.has("send_google_link") && s.google.status !== "connected") await sendGoogleLink(phone);
   if (acts.has("start_call") && twilioConfigured()) await startCall(phone);
+  if (acts.has("send_band") && ev.type === "band_moment" && !s.bandShown) {
+    await sendText(phone, "https://yourpersona.com/band");
+    await update(phone, (x) => { x.state.bandShown = true; x.items.push(item({ role: "agent", kind: "band_card" })); });
+  }
   if (acts.has("graduate") && !s.graduated) await update(phone, (x) => { x.state.graduated = true; });
   if ((acts.has("send_inbox_summary") || ev.type === "google_connected" || ev.type === "call_ended") && s.google.status === "connected" && !s.summarySent) {
     await sleep(800);

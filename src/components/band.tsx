@@ -1,7 +1,6 @@
 "use client";
 // Persona Band upsell: an iMessage-app-style bubble + an iOS 26 sheet (assets from yourpersona.com/band).
 import { useEffect, useState } from "react";
-import { Logo } from "./brand";
 
 const B = "/persona/band";
 export const BAND_URL = "https://yourpersona.com/band";
@@ -29,48 +28,64 @@ const FEATURES: [React.ReactNode, string][] = [
   [<svg key="f" className={ic} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="5" y="10.5" width="14" height="10" rx="2.4" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg>, "Privacy mode"],
 ];
 
-/** In-thread bubble, styled like an iMessage app message (MSMessage template layout). */
-export function BandCard({ onOpen }: { onOpen: () => void }) {
+/** How iMessage renders a shared link (LPLinkView): the page's og:image + title + domain, as a bubble with a tail. */
+export function BandLink({ onOpen }: { onOpen: () => void }) {
   return (
     <div className="flex justify-start pl-[2px] pop-in">
-      <button onClick={onOpen} className="w-[262px] rounded-[18px] overflow-hidden bg-[#e9e9eb] text-left active:opacity-90 transition-opacity">
-        <div className="relative h-[164px] bg-[#f2f2f0] overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${B}/side-knit-900.webp`} alt="Persona Band" className="absolute right-[-18px] top-1/2 -translate-y-1/2 h-[150px] object-contain" />
-          <div className="absolute left-[14px] top-[14px] flex items-center gap-[4px] text-[11px] font-semibold text-[#1c1c1e]"><Logo size={12} /> Persona Band</div>
-          <div className="absolute left-[14px] top-[40px] text-[21px] leading-[1.08] font-semibold tracking-[-0.5px] text-[#111]">Your Persona,<br />on your wrist.</div>
-          <div className="absolute left-[14px] bottom-[14px] rounded-full bg-[#1c1c1e] text-white text-[11px] font-semibold px-[10px] py-[5px]">Pre-order</div>
-        </div>
-        <div className="px-[13px] pt-[8px] pb-[9px] flex items-end justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-[15px] leading-[19px] font-semibold tracking-[-0.3px] text-black">Persona Band</div>
-            <div className="text-[13px] leading-[17px] text-[#6c6c70] truncate">First AI assistant you can wear</div>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="text-[15px] font-semibold tracking-[-0.3px] text-black">$179</div>
-            <div className="text-[11px] text-[#8e8e93] line-through">$219</div>
-          </div>
+      <button onClick={onOpen} className="richlink text-left active:opacity-90 transition-opacity">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`${B}/persona-band-2026-09-27-v2.png`} alt="Persona Band" className="block w-full aspect-[1.905] object-cover rounded-t-[18px] bg-white" />
+        <div className="px-[12px] pt-[8px] pb-[9px]">
+          <div className="text-[15px] leading-[19px] font-semibold tracking-[-0.3px] text-black line-clamp-2">Persona Band: First AI assistant you can wear</div>
+          <div className="text-[13px] leading-[17px] text-[#6c6c70]">yourpersona.com</div>
         </div>
       </button>
     </div>
   );
 }
 
-/** Quick-reply chips shown under the card (Messages for Business style). */
-export function QuickReplies({ options, onPick }: { options: string[]; onPick: (s: string) => void }) {
+/** Apple's App Clip card (HIG anatomy: 3:2 header image, title ≤30, subtitle ≤56, one verb button, full-app footer). */
+export function AppClipCard({ open, onClose, onView }: { open: boolean; onClose: () => void; onView: () => void }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => setShown(true));
+  }, [open]);
+  if (!open) return null;
+  const close = (then?: () => void) => { setShown(false); setTimeout(() => { onClose(); then?.(); }, 300); };
   return (
-    <div className="flex gap-[8px] mt-[8px] pl-[2px] fade-in">
-      {options.map((o) => (
-        <button key={o} onClick={() => onPick(o)} className="rounded-full border border-[#0088ff]/35 text-[#0088ff] text-[15px] tracking-[-0.2px] px-[14px] py-[6px] bg-white active:bg-[#0088ff]/10">
-          {o}
-        </button>
-      ))}
+    <div className="absolute inset-0 z-[65]">
+      <div onClick={() => close()} className={`absolute inset-0 bg-black transition-opacity duration-300 ${shown ? "opacity-35" : "opacity-0"}`} />
+      <div className={`absolute left-[8px] right-[8px] bottom-[8px] rounded-[42px] bg-white overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.3)] transition-transform duration-[380ms] ease-[cubic-bezier(.2,.9,.25,1)] ${shown ? "translate-y-0" : "translate-y-[110%]"}`}>
+        <div className="relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`${B}/knit-black.webp`} alt="" className="block w-full aspect-[3/2] object-cover" />
+          <button onClick={() => close()} aria-label="Close" className="absolute top-[14px] right-[14px] w-[30px] h-[30px] rounded-full bg-black/35 backdrop-blur-md grid place-items-center text-white/90">
+            <svg width="11" height="11" viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+          </button>
+        </div>
+        <div className="px-[24px] pt-[18px] text-center">
+          <div className="text-[22px] leading-[27px] font-bold tracking-[-0.45px] text-black">Persona Band</div>
+          <div className="mt-[3px] text-[15px] leading-[20px] tracking-[-0.25px] text-[#6c6c70]">Your Persona on your wrist. Pre-order for $179.</div>
+          <button onClick={() => close(onView)} className="mt-[18px] w-full h-[50px] rounded-full bg-[#0088ff] text-white text-[17px] font-semibold tracking-[-0.4px] active:opacity-80">
+            View
+          </button>
+        </div>
+        <div className="mt-[18px] mx-[24px] border-t border-black/[0.08] py-[14px] pb-[22px] flex items-center gap-[10px]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/persona/apple-icon.png" alt="" className="w-[34px] h-[34px] rounded-[8px] shadow-[0_0_0_0.5px_rgba(0,0,0,0.15)]" />
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-[13px] font-semibold tracking-[-0.1px] text-black">Persona</div>
+            <div className="text-[12px] text-[#8e8e93]">App Clip</div>
+          </div>
+          <span className="text-[13px] text-[#0088ff] tracking-[-0.1px]">Get the full app</span>
+        </div>
+      </div>
     </div>
   );
 }
 
-/** iOS 26 sheet with the product page. */
-export function BandSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** The App Clip experience after tapping View: full-screen native product page. */
+export function BandClip({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [color, setColor] = useState(COLORS[0]);
   const [qty, setQty] = useState(1);
   const [shown, setShown] = useState(false);
@@ -84,18 +99,16 @@ export function BandSheet({ open, onClose }: { open: boolean; onClose: () => voi
     <div className="absolute inset-0 z-[65]">
       <div onClick={close} className={`absolute inset-0 bg-black transition-opacity duration-300 ${shown ? "opacity-30" : "opacity-0"}`} />
       <div
-        className={`absolute inset-x-0 bottom-0 top-[58px] rounded-t-[38px] bg-[#f2f2f7] overflow-hidden shadow-[0_-10px_40px_rgba(0,0,0,0.18)] transition-transform duration-[380ms] ease-[cubic-bezier(.2,.9,.25,1)] ${shown ? "translate-y-0" : "translate-y-full"}`}
+        className={`absolute inset-0 bg-[#f2f2f7] overflow-hidden transition-[transform,opacity,border-radius] duration-[420ms] ease-[cubic-bezier(.2,.9,.25,1)] ${shown ? "scale-100 opacity-100 rounded-none" : "scale-[0.92] opacity-0 rounded-[48px]"}`}
       >
-        <div className="absolute inset-x-0 top-0 z-10 h-[64px] flex items-start justify-between px-[16px] pt-[14px] pointer-events-none">
-          <span />
-          <span className="mt-[-8px] w-[36px] h-[5px] rounded-full bg-black/20" />
+        <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-end px-[16px] pt-[60px] pointer-events-none">
           <button onClick={close} aria-label="Close" className="glass pointer-events-auto w-[36px] h-[36px] rounded-full grid place-items-center text-[#3c3c43]">
             <svg width="12" height="12" viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           </button>
         </div>
 
         <div className="h-full overflow-y-auto no-scrollbar pb-[120px]">
-          <div className="relative h-[250px] bg-[#e9e9eb]">
+          <div className="relative h-[300px] bg-[#e9e9eb]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img key={color.id} src={color.img} alt={color.label} className="absolute inset-0 w-full h-full object-cover fade-in" />
           </div>
@@ -159,7 +172,7 @@ export function BandSheet({ open, onClose }: { open: boolean; onClose: () => voi
           <div className="mt-[6px] mb-[10px] text-center text-[12px] text-[#aeaeb2]">30-day money-back · 1 year warranty</div>
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 px-[16px] pt-[12px] pb-[30px] bg-gradient-to-t from-[#f2f2f7] via-[#f2f2f7]/95 to-transparent">
+        <div className="absolute inset-x-0 bottom-0 px-[16px] pt-[12px] pb-[34px] bg-gradient-to-t from-[#f2f2f7] via-[#f2f2f7]/95 to-transparent">
           <a
             href={`${BAND_URL}?utm_source=onboarding&qty=${qty}&color=${color.id}`}
             target="_blank"
