@@ -7,7 +7,9 @@ import {
 import { buildFirstMessage, buildVoicePrompt, describeState } from "@/lib/prompts";
 import { blip, startRing, stopRing } from "@/lib/ringtone";
 import { downloadVCard } from "@/lib/vcard";
-import { Avatar, Bubble, CallLog, ContactCard, Divider, GoogleLinkCard, PhoneIcon, Typing } from "./ui";
+import { Mist } from "./brand";
+import { AgentAvatar, StartScreen } from "./persona-ui";
+import { Bubble, CallLog, ContactCard, Divider, GoogleLinkCard, PhoneIcon, Typing } from "./ui";
 import { ActiveCall, CallPill, IncomingCall } from "./Call";
 import { SidePanel } from "./SidePanel";
 
@@ -20,10 +22,12 @@ const cap = (s?: string) => (s ? s.replace(/(^|[\s-])(\p{Ll})/gu, (m, a, b) => a
 const stripTags = (t: string) => t.replace(/\[[^\]]{1,30}\]\s*/g, "").trim();
 
 const INTRO = [
-  "hey! i'm your new personal assistant 👋",
-  "you can text me or call me anytime. i can make calls for you, dig through your email, keep your calendar sane, shop, book things, that kind of stuff.",
-  "first things first, what do you want to call me?",
+  "hey! i'm your new personal assistant",
+  "you can text me or call me anytime and i can help with:\n📞 calling places on your behalf\n💻 browsing the web\n🛍️ shopping for you\n✉️ managing your email and calendar\n🚗 finding DoorDash or Uber options",
+  "what do you want to call me?",
 ];
+const FIRST_DRAFT = "Hey, what's a persona?";
+const GREETING = /^\s*(hi+|hey+|hello+|yo+|sup|hiya|howdy|what'?s? (a |this|up|persona)|what is (a |this)|who (are|is) (you|this)|[?!.👋]+)[\s\w'?,.!👋]*$/i;
 
 type CallUI = "none" | "incoming" | "active";
 
@@ -63,6 +67,10 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
 
   // ---------- ephemeral UI ----------
   const [typing, setTyping] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const [now0] = useState(() => Date.now());
+  useEffect(() => { if (entered) setTimeout(() => composer.current?.focus(), 350); }, [entered]);
   const [draft, setDraft] = useState("");
   const [callUI, setCallUI] = useState<CallUI>("none");
   const callUIRef = useRef<CallUI>("none");
@@ -440,17 +448,6 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       patch((x) => ({ ...x, call: { ...x.call, status: "missed" } }));
       addItem({ role: "system", kind: "call_log", text: "Missed call" });
       void runAgent({ type: "call_missed" });
-    } else if (itemsRef.current.length === 0) {
-      (async () => {
-        busy.current = true;
-        await sleep(500);
-        setTyping(true);
-        await sleep(900);
-        await say(INTRO.slice(0, 1));
-        await say(INTRO.slice(1), false);
-        busy.current = false;
-        if (pending.current) { const p = pending.current; pending.current = null; void runAgent(p); }
-      })();
     }
   }, [patch, addItem, runAgent, say]);
 
@@ -478,8 +475,22 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       convo.sendContextualUpdate(`While on the call, the user also texted: "${text}". Respond to it naturally out loud if relevant.`);
       return;
     }
+    const isFirst = !itemsRef.current.some((i, idx) => i.role === "user" && idx < itemsRef.current.length - 1);
     clearTimeout(debounce.current);
-    debounce.current = setTimeout(() => void runAgent({ type: "user_message" }), 650);
+    if (isFirst && GREETING.test(text) && text.length < 60) {
+      debounce.current = setTimeout(async () => {
+        if (busy.current) return void runAgent({ type: "user_message" });
+        busy.current = true;
+        setTyping(true);
+        await sleep(1100);
+        await say(INTRO.slice(0, 1));
+        await say(INTRO.slice(1), false);
+        busy.current = false;
+        if (pending.current) { const p = pending.current; pending.current = null; void runAgent(p); }
+      }, 500);
+      return;
+    }
+    debounce.current = setTimeout(() => void runAgent(isFirst ? { type: "first_contact" } : { type: "user_message" }), 650);
   };
 
   const reset = () => {
@@ -499,33 +510,51 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   const lastLinkId = [...items].reverse().find((i) => i.kind === "google_link")?.id;
   const name = state.agentName;
 
+  const started = entered || items.length > 0;
+
   return (
-    <div className="min-h-dvh w-full flex items-center justify-center gap-10 sm:p-6">
-      <div className="relative w-full h-dvh sm:w-[392px] sm:h-[min(844px,calc(100dvh-48px))] sm:rounded-[58px] sm:border-[11px] sm:border-[#0b0b0c] sm:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.45),0_0_0_1.5px_#2a2a2c] bg-screen overflow-hidden flex flex-col">
+    <div className="relative min-h-dvh w-full overflow-hidden bg-page">
+      <div aria-hidden className="pointer-events-none select-none absolute -bottom-[5vw] left-1/2 -translate-x-1/2 whitespace-nowrap text-[22vw] font-semibold tracking-[-0.05em] text-ink/[0.035] leading-none hidden lg:block">Persona</div>
+      <div className="relative min-h-dvh w-full flex items-center justify-center lg:gap-24 sm:p-6">
+      <div className="relative w-full sm:w-auto sm:py-6">
+        <Mist id="bg" sides className="hidden sm:block absolute -left-48 -right-28 -inset-y-6 w-[calc(100%+19rem)] h-[calc(100%+3rem)] dark:opacity-20 [mask-image:radial-gradient(ellipse_closest-side,black_72%,transparent)]" />
+      <div className="relative w-full h-dvh sm:w-[396px] sm:h-[min(852px,calc(100dvh-64px))] sm:rounded-[64px] sm:p-[11px] sm:bg-[linear-gradient(145deg,#f1f1f2_0%,#b9babd_22%,#e9e9eb_48%,#a4a5a9_78%,#d8d9db_100%)] sm:shadow-[0_50px_90px_-30px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.6)]">
+      <div className="font-ios relative w-full h-full sm:rounded-[54px] sm:ring-[3px] sm:ring-black bg-screen overflow-hidden flex flex-col">
+        {/* status bar + dynamic island (desktop frame only) */}
+        <div className="hidden sm:flex relative z-40 h-[50px] shrink-0 items-center justify-between px-8 pt-1 text-[15px] font-semibold text-ink">
+          <span>9:41</span>
+          <span className="absolute left-1/2 top-[11px] -translate-x-1/2 w-[112px] h-[32px] rounded-full bg-black" />
+          <span className="flex items-center gap-1.5">
+            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1" /><rect x="4.5" y="5" width="3" height="6" rx="1" /><rect x="9" y="2.5" width="3" height="8.5" rx="1" /><rect x="13.5" y="0" width="3" height="11" rx="1" /></svg>
+            <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.2c2 0 3.9.8 5.3 2.1l1.1-1.1A9.1 9.1 0 007.5.6 9.1 9.1 0 001.1 3.2l1.1 1.1a7.5 7.5 0 015.3-2.1zm0 3.2c1.1 0 2.2.4 3 1.2l1.1-1.1a5.9 5.9 0 00-8.2 0l1.1 1.1c.8-.8 1.9-1.2 3-1.2zm0 3.2c-.4 0-.8.2-1.1.5l1.1 1.1 1.1-1.1c-.3-.3-.7-.5-1.1-.5z" /></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3.5" stroke="currentColor" opacity=".4" /><rect x="2" y="2" width="18" height="8" rx="2" fill="currentColor" /><path d="M23 4v4c.8-.3 1.3-1.1 1.3-2S23.8 4.3 23 4z" fill="currentColor" opacity=".45" /></svg>
+          </span>
+        </div>
+
+        {!started && <StartScreen onContinue={() => { setEntered(true); setDraft(FIRST_DRAFT); }} />}
+
         {/* header */}
-        <header className="relative z-10 pt-[max(env(safe-area-inset-top),14px)] sm:pt-9 pb-2 px-4 bg-screen/85 backdrop-blur-xl border-b border-hairline">
-          <div className="flex items-center">
-            <div className="w-10">
-              <button
-                onClick={() => confirm("Start the onboarding over?") && reset()}
-                className="lg:hidden w-10 h-10 grid place-items-center rounded-full text-muted active:bg-card"
-                aria-label="Start over"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12a9 9 0 109-9 9.7 9.7 0 00-6.7 2.8L3 8M3 3v5h5" /></svg>
-              </button>
-            </div>
+        <header className="relative z-10 pt-[max(env(safe-area-inset-top),10px)] sm:pt-1 pb-2 px-3 bg-screen/80 backdrop-blur-xl">
+          <div className="flex items-start">
+            <button
+              onClick={() => confirm("Start the onboarding over?") && reset()}
+              className="w-10 h-10 mt-1 grid place-items-center rounded-full bg-card text-ink/80 active:opacity-70"
+              aria-label="Start over"
+            >
+              <svg width="11" height="18" viewBox="0 0 11 18" fill="none"><path d="M9 1.5L2 9l7 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
             <div className="flex-1 flex flex-col items-center">
-              <Avatar name={name} size={46} />
-              <div className="mt-1 text-[12px] font-medium flex items-center gap-0.5">
-                {name || "Persona"} <span className="text-muted">›</span>
+              <AgentAvatar size={54} />
+              <div className="-mt-1.5 relative rounded-full bg-screen/90 border border-hairline px-2.5 py-[3px] text-[12.5px] font-semibold flex items-center gap-1 shadow-sm">
+                {name || "Persona"} <span className="text-muted font-normal text-[10px]">›</span>
               </div>
             </div>
             <button
               onClick={() => (callUI === "active" ? setMinimized(false) : callUI === "none" && connect(true))}
-              className="w-10 h-10 grid place-items-center rounded-full text-me active:bg-card"
+              className="w-10 h-10 mt-1 grid place-items-center rounded-full bg-card text-ink/80 active:opacity-70"
               aria-label="Call"
             >
-              <PhoneIcon size={21} />
+              <PhoneIcon size={18} />
             </button>
           </div>
         </header>
@@ -536,7 +565,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         <div ref={scroller} className="flex-1 overflow-y-auto no-scrollbar px-3 pt-4 pb-3 flex flex-col gap-[3px]">
           <div className="text-center text-[11px] text-muted mb-3">
             <div className="font-medium">iMessage</div>
-            <div>Today {hydrated && items[0] ? new Date(items[0].at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}</div>
+            <div>Today {hydrated ? new Date(items[0]?.at ?? now0).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}</div>
           </div>
           {items.map((it, idx) => {
             const next = items[idx + 1];
@@ -563,12 +592,14 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         </div>
 
         {/* composer */}
-        <div className="px-3 pt-2 pb-[max(env(safe-area-inset-bottom),10px)] sm:pb-6 bg-screen">
+        <div className="px-3 pt-2 pb-[max(env(safe-area-inset-bottom),10px)] sm:pb-7 bg-screen flex items-end gap-2">
+          <span className="w-9 h-9 shrink-0 grid place-items-center rounded-full bg-card text-muted mb-px text-[22px] leading-none">+</span>
           <form
             onSubmit={(e) => { e.preventDefault(); send(); }}
-            className="flex items-end gap-2 rounded-[22px] border border-hairline pl-4 pr-1.5 py-1.5"
+            className="flex items-end gap-2 rounded-[22px] border border-hairline pl-4 pr-1.5 py-1.5 bg-screen"
           >
             <textarea
+              ref={composer}
               rows={1}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -585,7 +616,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
             </button>
           </form>
-        </div>
+          </div>
 
         {callUI === "incoming" && <IncomingCall name={name} onAccept={() => connect(false)} onDecline={decline} />}
         {callUI === "active" && !minimized && (
@@ -604,6 +635,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         )}
       </div>
 
+      </div>
+      </div>
       <SidePanel
         state={state}
         googleConfigured={googleConfigured}
@@ -612,6 +645,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         onReset={reset}
         inCall={callUI !== "none"}
       />
+      </div>
     </div>
   );
 }

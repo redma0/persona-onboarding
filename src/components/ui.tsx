@@ -1,5 +1,6 @@
 "use client";
 import { hueFor } from "@/lib/vcard";
+import { Logo, Mist } from "./brand";
 import type { ChatItem } from "@/lib/types";
 
 export function Avatar({ name, size = 40, className = "" }: { name?: string; size?: number; className?: string }) {
@@ -68,7 +69,7 @@ export function ContactCard({ name, onSave, saved }: { name: string; onSave: () 
             <div className="font-semibold truncate">{name}</div>
             <div className="text-[13px] text-muted">Persona</div>
           </div>
-          <Avatar name={name} size={44} />
+          <div className="w-11 h-11 rounded-full bg-white text-black grid place-items-center text-[19px] font-medium shadow-[0_0_0_0.5px_rgba(0,0,0,0.15)]">{name.trim()[0]?.toUpperCase()}</div>
           <svg width="8" height="14" viewBox="0 0 8 14" className="text-muted"><path d="M1 1l6 6-6 6" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinecap="round" /></svg>
         </div>
         <div className="border-t border-hairline px-3.5 py-2 text-[13px] text-me font-medium">
@@ -82,35 +83,22 @@ export function ContactCard({ name, onSave, saved }: { name: string; onSave: () 
 export function GoogleLinkCard({ onConnect, state }: { onConnect: () => void; state: "idle" | "waiting" | "connected" }) {
   return (
     <div className="flex justify-start pop-in">
-      <div className="w-[270px] rounded-[18px] overflow-hidden bg-them text-them-ink">
-        <div className="relative h-[150px] overflow-hidden" style={{ background: "linear-gradient(160deg,#eeeae3 0%,#d9dfd6 55%,#c5cfc4 100%)" }}>
-          <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 270 150" preserveAspectRatio="none">
-            <path d="M0 120 C60 90 90 130 150 105 S240 80 270 95 L270 150 L0 150Z" fill="#b7c3b5" />
-            <path d="M0 135 C70 115 120 145 180 125 S250 115 270 120 L270 150 L0 150Z" fill="#a6b4a4" />
-          </svg>
-          <div className="absolute left-4 top-3.5 text-[12px] font-semibold tracking-tight text-[#3a3a37]">✦ Persona</div>
-          <div className="absolute left-4 top-9 text-[25px] leading-[1.05] font-semibold tracking-[-0.02em] text-[#2f2f2c]">
-            One tap to a<br />quieter inbox
+      <button onClick={onConnect} disabled={state === "connected"} className="w-[262px] rounded-[18px] overflow-hidden bg-them text-them-ink text-left active:opacity-90">
+        <div className="relative h-[168px] overflow-hidden">
+          <Mist id="card" className="absolute inset-0 w-full h-full" />
+          <div className="absolute left-4 top-4 flex items-center gap-1 text-[11px] font-semibold text-[#3a3a37]"><Logo size={12} strokeWidth={2.4} /> Persona</div>
+          <div className="absolute left-4 top-10 text-[24px] leading-[1.08] font-medium tracking-[-0.025em] text-[#2b2b29]">
+            One tap <span className="text-[#6d6d68]">to a</span><br />quieter life
+          </div>
+          <div className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-full bg-white/95 text-[#1f1f1f] px-2.5 py-1.5 text-[11px] font-medium shadow-sm">
+            {state === "connected" ? "Connected ✓" : <><GoogleG size={11} /> {state === "waiting" ? "Waiting…" : "Connect with Google"}</>}
           </div>
         </div>
         <div className="px-3.5 py-2.5">
-          <div className="text-[14px] font-semibold">Connect your Google account</div>
-          <div className="text-[12px] text-muted">Gmail + Calendar · read-only</div>
+          <div className="text-[13.5px] font-semibold">Connect your Google account</div>
+          <div className="text-[12px] text-muted">{typeof location !== "undefined" ? location.host : "yourpersona"}</div>
         </div>
-        <div className="px-3 pb-3">
-          <button
-            onClick={onConnect}
-            disabled={state === "connected"}
-            className="w-full flex items-center justify-center gap-2 rounded-full bg-white text-[#1f1f1f] border border-black/10 py-2 text-[14px] font-medium active:scale-[0.98] transition disabled:opacity-70"
-          >
-            {state === "connected" ? "Connected ✓" : (
-              <>
-                <GoogleG /> {state === "waiting" ? "Waiting for Google…" : "Connect with Google"}
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      </button>
     </div>
   );
 }

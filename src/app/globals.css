@@ -1,31 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --page: #efece6;
-  --page-ink: #1d1c1a;
-  --muted: #7c7a75;
+  --page: #ffffff;
+  --page-ink: #1b1b1a;
+  --muted: #8a8a8e;
   --screen: #ffffff;
   --bubble-them: #e9e9eb;
-  --bubble-them-ink: #111;
-  --bubble-me: #2f6bff;
+  --bubble-them-ink: #000;
+  --bubble-me: #007aff;
   --bubble-me-ink: #fff;
-  --hairline: rgba(0, 0, 0, 0.08);
-  --card: #f4f4f5;
-  --panel: rgba(255, 255, 255, 0.6);
+  --hairline: rgba(0, 0, 0, 0.09);
+  --card: rgba(118, 118, 128, 0.12);
+  --panel: #f6f6f4;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --page: #111110;
-    --page-ink: #ecebe8;
-    --muted: #8d8b86;
+    --page: #0c0c0c;
+    --page-ink: #ededeb;
+    --muted: #8d8d93;
     --screen: #000000;
-    --bubble-them: #262629;
-    --bubble-them-ink: #f2f2f2;
-    --bubble-me: #2f6bff;
-    --hairline: rgba(255, 255, 255, 0.1);
-    --card: #1c1c1e;
-    --panel: rgba(255, 255, 255, 0.04);
+    --bubble-them: #262628;
+    --bubble-them-ink: #fff;
+    --bubble-me: #0a84ff;
+    --hairline: rgba(255, 255, 255, 0.12);
+    --card: rgba(118, 118, 128, 0.24);
+    --panel: #161616;
   }
 }
 
@@ -46,7 +46,7 @@ html,
 body {
   background: var(--page);
   color: var(--page-ink);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -91,3 +91,5 @@ body {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+.font-ios { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), system-ui, sans-serif; }

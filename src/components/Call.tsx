@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { Avatar, GoogleG, PhoneIcon } from "./ui";
+import { GoogleG, PhoneIcon } from "./ui";
+import { AgentAvatar } from "./persona-ui";
 import { hueFor } from "@/lib/vcard";
 
 function Backdrop({ name }: { name?: string }) {
@@ -10,7 +11,7 @@ function Backdrop({ name }: { name?: string }) {
     <div
       className="absolute inset-0"
       style={{
-        background: `radial-gradient(120% 70% at 50% 0%, hsl(${h} 45% 32%) 0%, hsl(${h} 30% 12%) 55%, #070708 100%)`,
+        background: `radial-gradient(120% 70% at 50% 0%, hsl(${h} 8% 34%) 0%, hsl(${h} 6% 13%) 55%, #070708 100%)`,
       }}
     />
   );
@@ -43,7 +44,7 @@ export function IncomingCall({ name, onAccept, onDecline }: { name?: string; onA
         <div className="relative mt-16">
           <span className="absolute inset-0 rounded-full bg-white/20 pulse-ring" />
           <span className="absolute inset-0 rounded-full bg-white/20 pulse-ring" style={{ animationDelay: "0.9s" }} />
-          <Avatar name={name} size={112} className="relative ring-4 ring-white/10" />
+          <AgentAvatar size={112} className="relative" />
         </div>
         <div className="mt-auto w-full px-12 flex justify-between">
           <RoundButton onClick={onDecline} label="Decline" color="bg-[#ff3b30]">
@@ -115,7 +116,7 @@ export function ActiveCall({
       {banner && (
         <div className="absolute z-10 left-3 right-3 top-3 slide-down">
           <div className="flex items-center gap-3 rounded-[22px] bg-white/85 dark:bg-[#2a2a2c]/90 backdrop-blur-xl px-3.5 py-3 text-[#111] dark:text-white shadow-lg">
-            <Avatar name={name} size={34} />
+            <AgentAvatar size={34} />
             <button onClick={onBanner} className="flex-1 text-left min-w-0">
               <div className="text-[13px] font-semibold">{name}</div>
               <div className="text-[13px] opacity-70 truncate">sent you a link · Connect your Google account</div>
@@ -130,7 +131,7 @@ export function ActiveCall({
       <div className="relative h-full flex flex-col items-center pt-24 pb-14 text-white">
         <div className="relative">
           <div ref={glow} className="absolute -inset-3 rounded-full bg-white/30 blur-md transition-none" />
-          <Avatar name={name} size={112} className="relative" />
+          <AgentAvatar size={112} className="relative" />
         </div>
         <div className="mt-6 text-[32px] font-semibold tracking-[-0.02em]">{name || "Persona"}</div>
         <div className="text-[15px] text-white/60 tabular-nums">
