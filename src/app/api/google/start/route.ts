@@ -3,10 +3,12 @@ import { cookies } from "next/headers";
 import { googleConfigured } from "@/lib/session";
 
 export async function GET(req: Request) {
-  const origin = new URL(req.url).origin;
-  if (!googleConfigured()) return Response.redirect(`${origin}/connect/demo`, 302);
+  const url = new URL(req.url);
+  const origin = url.origin;
+  const t = url.searchParams.get("t"); // iMessage link token (maps to a phone number)
+  if (!googleConfigured()) return Response.redirect(`${origin}/connect/demo${t ? `?t=${t}` : ""}`, 302);
 
-  const state = crypto.randomBytes(16).toString("hex");
+  const state = crypto.randomBytes(16).toString("hex") + (t ? `.${t}` : "");
   (await cookies()).set("g_state", state, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 600, path: "/" });
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,

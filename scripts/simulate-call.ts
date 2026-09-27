@@ -4,7 +4,9 @@ import { buildFirstMessage, buildVoicePrompt } from "../src/lib/prompts";
 import { initialState } from "../src/lib/types";
 
 const KEY = process.env.ELEVENLABS_API_KEY!;
-const AGENT = process.env.ELEVENLABS_AGENT_ID!;
+const PHONE = !!process.env.PHONE;
+const AGENT = PHONE ? process.env.ELEVENLABS_PHONE_AGENT_ID! : process.env.ELEVENLABS_AGENT_ID!;
+const T = (n: string) => (PHONE ? "phone_" + n : n);
 const H = { "xi-api-key": KEY, "content-type": "application/json" };
 const api = async (m: string, p: string, b?: unknown) => {
   const r = await fetch("https://api.elevenlabs.io/v1/convai" + p, { method: m, headers: H, body: b ? JSON.stringify(b) : undefined });
@@ -21,7 +23,7 @@ const persona = process.argv[2] ||
 (async () => {
   const base = await api("GET", `/agents/${AGENT}`);
   const cfg = base.conversation_config;
-  cfg.agent.prompt.prompt = buildVoicePrompt(state, thread);
+  cfg.agent.prompt.prompt = buildVoicePrompt(state, thread, PHONE ? "phone" : "web");
   cfg.agent.first_message = buildFirstMessage(state);
   delete cfg.agent.prompt.tools;
   const tmp = await api("POST", "/agents/create", { name: "tmp-sim", conversation_config: cfg });
@@ -29,12 +31,13 @@ const persona = process.argv[2] ||
     let sent = 0;
     const res = await api("POST", `/agents/${tmp.agent_id}/simulate-conversation`, {
       simulation_specification: {
+        dynamic_variables: { user_phone: "+15550001111", call_id: "sim" },
         simulated_user_config: { prompt: { prompt: persona, llm: "gpt-4.1-mini" }, first_message: "hello?" },
         tool_mock_config: {
-          send_google_link: { default_return_value: "Delivered. The 'Connect with Google' card is now in their text thread, and a banner with a Connect button is showing at the top of their call screen right now." },
-          save_user_name: { default_return_value: "Saved." },
-          save_help_need: { default_return_value: "Saved." },
-          get_status: { default_return_value: JSON.stringify({ user_name: "Riyad", google: "link_sent", google_link_delivered_to_thread: true }) },
+          [T("send_google_link")]: { default_return_value: PHONE ? "Delivered. It's now the latest text message from you in their Messages app: a 'Connect your Google account' link." : "Delivered. The 'Connect with Google' card is now in their text thread, and a banner with a Connect button is showing at the top of their call screen right now." },
+          [T("save_user_name")]: { default_return_value: "Saved." },
+          [T("save_help_need")]: { default_return_value: "Saved." },
+          [T("get_status")]: { default_return_value: JSON.stringify({ user_name: "Riyad", google: "link_sent", google_link_delivered_to_thread: true }) },
         },
       },
       new_turns_limit: 24,

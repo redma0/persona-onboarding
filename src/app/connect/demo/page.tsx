@@ -5,7 +5,13 @@ import { useState } from "react";
 export default function DemoGoogle() {
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
-  const finish = (ok: boolean) => {
+  const finish = async (ok: boolean) => {
+    const t = new URLSearchParams(location.search).get("t");
+    if (t && ok) {
+      await fetch("/api/google/demo", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t, email: email.trim() }) });
+      setDone(true);
+      return;
+    }
     const p = ok
       ? { ok: true, email: email.trim(), name: email.split("@")[0].split(/[._]/)[0], demo: true }
       : { ok: false, reason: "cancelled" };
@@ -23,7 +29,7 @@ export default function DemoGoogle() {
           <span className="text-[#4285F4]">G</span><span className="text-[#EA4335]">o</span><span className="text-[#FBBC05]">o</span><span className="text-[#4285F4]">g</span><span className="text-[#34A853]">l</span><span className="text-[#EA4335]">e</span>
         </div>
         {done ? (
-          <p className="mt-6">All set, you can close this tab.</p>
+          <p className="mt-6">All set. You can head back.</p>
         ) : (
           <>
             <h1 className="mt-4 text-2xl">Sign in to continue to Persona</h1>
