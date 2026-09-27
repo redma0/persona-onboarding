@@ -517,7 +517,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       <div aria-hidden className="pointer-events-none select-none absolute -bottom-[5vw] left-1/2 -translate-x-1/2 whitespace-nowrap text-[22vw] font-semibold tracking-[-0.05em] text-ink/[0.035] leading-none hidden lg:block">Persona</div>
       <div className="relative min-h-dvh w-full flex items-center justify-center lg:gap-24 sm:p-6">
       <div className="relative w-full sm:w-auto sm:py-6">
-        <Mist id="bg" sides className="hidden sm:block absolute -left-48 -right-28 -inset-y-6 w-[calc(100%+19rem)] h-[calc(100%+3rem)] dark:opacity-20 [mask-image:radial-gradient(ellipse_closest-side,black_72%,transparent)]" />
+        <Mist id="bg" sides className="hidden sm:block absolute -left-48 -right-28 -inset-y-6 w-[calc(100%+19rem)] h-[calc(100%+3rem)] [mask-image:radial-gradient(ellipse_closest-side,black_72%,transparent)]" />
       <div className="relative w-full h-dvh sm:w-[396px] sm:h-[min(852px,calc(100dvh-64px))] sm:rounded-[64px] sm:p-[11px] sm:bg-[linear-gradient(145deg,#f1f1f2_0%,#b9babd_22%,#e9e9eb_48%,#a4a5a9_78%,#d8d9db_100%)] sm:shadow-[0_50px_90px_-30px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.6)]">
       <div className="font-ios relative w-full h-full sm:rounded-[54px] sm:ring-[3px] sm:ring-black bg-screen overflow-hidden flex flex-col">
         {/* status bar + dynamic island (desktop frame only) */}

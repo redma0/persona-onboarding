@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light;
   --page: #ffffff;
   --page-ink: #1b1b1a;
   --muted: #8a8a8e;
@@ -14,20 +15,6 @@
   --panel: #f6f6f4;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --page: #0c0c0c;
-    --page-ink: #ededeb;
-    --muted: #8d8d93;
-    --screen: #000000;
-    --bubble-them: #262628;
-    --bubble-them-ink: #fff;
-    --bubble-me: #0a84ff;
-    --hairline: rgba(255, 255, 255, 0.12);
-    --card: rgba(118, 118, 128, 0.24);
-    --panel: #161616;
-  }
-}
 
 @theme inline {
   --color-page: var(--page);

@@ -115,7 +115,7 @@ export function ActiveCall({
       <Backdrop name={name} />
       {banner && (
         <div className="absolute z-10 left-3 right-3 top-3 slide-down">
-          <div className="flex items-center gap-3 rounded-[22px] bg-white/85 dark:bg-[#2a2a2c]/90 backdrop-blur-xl px-3.5 py-3 text-[#111] dark:text-white shadow-lg">
+          <div className="flex items-center gap-3 rounded-[22px] bg-white/85 backdrop-blur-xl px-3.5 py-3 text-[#111] shadow-lg">
             <AgentAvatar size={34} />
             <button onClick={onBanner} className="flex-1 text-left min-w-0">
               <div className="text-[13px] font-semibold">{name}</div>
