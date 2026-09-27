@@ -56,7 +56,10 @@ async function upsertTools() {
       name: t.name,
       description: t.description,
       parameters: t.parameters,
-      expects_response: true,
+      // saving facts shouldn't block the reply; link/status tools must wait for their answer
+      expects_response: !t.name.startsWith("save_"),
+      // say a quick "sending it now" while the link tool runs, so the line never goes silent
+      pre_tool_speech: t.name === "send_google_link" ? "force" : "auto",
       response_timeout_secs: 10,
     };
     const found = (existing.tools || []).find((x) => x.tool_config?.name === t.name);
@@ -103,7 +106,13 @@ async function main() {
       similarity_boost: 0.8,
       speed: 1.02,
     },
-    turn: { turn_timeout: 8, silence_end_call_timeout: 45 },
+    turn: {
+      turn_timeout: 8,
+      silence_end_call_timeout: 45,
+      turn_eagerness: "normal",
+      speculative_turn: true,
+      interruption_ignore_terms: ["yeah", "yep", "mhm", "mm-hmm", "uh huh", "okay", "ok", "right", "sure", "got it", "cool"],
+    },
     conversation: { max_duration_seconds: 600 },
   };
   const platform_settings = {

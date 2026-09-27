@@ -28,6 +28,7 @@ async function main() {
       name,
       description,
       response_timeout_secs: 15,
+      pre_tool_speech: name === "phone_send_google_link" ? "force" : "auto",
       api_schema: {
         url: `${APP}/api/voice/tool/${name.replace("phone_", "")}`,
         method: "POST",
@@ -67,7 +68,13 @@ async function main() {
       agent_output_audio_format: "ulaw_8000",
     },
     asr: { user_input_audio_format: "ulaw_8000" },
-    turn: { turn_timeout: 8, silence_end_call_timeout: 30 },
+    turn: {
+      turn_timeout: 8,
+      silence_end_call_timeout: 30,
+      turn_eagerness: "normal",
+      speculative_turn: true,
+      interruption_ignore_terms: ["yeah", "yep", "mhm", "mm-hmm", "uh huh", "okay", "ok", "right", "sure", "got it", "cool"],
+    },
     conversation: { max_duration_seconds: 600 },
   };
   const platform_settings = {

@@ -62,24 +62,102 @@ const CHANNEL_NOTE: Record<Channel, string> = {
 // Strip anything that smells like internal plumbing so it can never reach the user.
 const INTERNAL = /(^\[|\]$|\bjson\b|function call|tool call|tool_|system prompt|stop_reason|status code|\bundefined\b)/i;
 
+/** Gmail access for tools; `get` performs an authorized GET against gmail/v1/users/me/<path>. */
+export interface GmailCtx { get: (path: string) => Promise<Response> }
+
+const GMAIL_TOOLS: Anthropic.Tool[] = [
+  {
+    name: "gmail_search",
+    description: "Search the user's Gmail (Gmail search syntax, e.g. 'from:sarah term sheet newer_than:7d'). Returns sender, subject, date, snippet and id for up to 8 messages.",
+    input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
+  {
+    name: "gmail_read",
+    description: "Read the full text of one email by id (from gmail_search).",
+    input_schema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+  },
+];
+
+function b64(s: string) {
+  return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+}
+type Part = { mimeType?: string; body?: { data?: string }; parts?: Part[] };
+function plainText(p: Part): string {
+  if (p.mimeType === "text/plain" && p.body?.data) return b64(p.body.data);
+  for (const c of p.parts ?? []) { const t = plainText(c); if (t) return t; }
+  if (p.mimeType === "text/html" && p.body?.data) return b64(p.body.data).replace(/<[^>]+>/g, " ");
+  return "";
+}
+
+async function runGmailTool(g: GmailCtx, name: string, input: Record<string, string>): Promise<string> {
+  if (name === "gmail_search") {
+    const r = await g.get(`messages?maxResults=8&q=${encodeURIComponent(input.query ?? "")}`);
+    if (!r.ok) return `gmail error ${r.status}`;
+    const ids: { id: string }[] = (await r.json()).messages ?? [];
+    if (!ids.length) return "no results";
+    const rows = await Promise.all(ids.map(async ({ id }) => {
+      const d = await (await g.get(`messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`)).json();
+      const h = Object.fromEntries((d.payload?.headers ?? []).map((x: { name: string; value: string }) => [x.name, x.value]));
+      return `id=${id} | from: ${h.From} | subject: ${h.Subject} | ${h.Date}\n  ${d.snippet}`;
+    }));
+    return rows.join("\n");
+  }
+  if (name === "gmail_read") {
+    const r = await g.get(`messages/${encodeURIComponent(input.id ?? "")}?format=full`);
+    if (!r.ok) return `gmail error ${r.status}`;
+    const d = await r.json();
+    const h = Object.fromEntries((d.payload?.headers ?? []).map((x: { name: string; value: string }) => [x.name, x.value]));
+    return `from: ${h.From}\nto: ${h.To}\nsubject: ${h.Subject}\ndate: ${h.Date}\n\n${plainText(d.payload).replace(/\s+\n/g, "\n").slice(0, 6000)}`;
+  }
+  return "unknown tool";
+}
+
 export async function runTextAgent(
   state: OnboardingState,
   items: ChatItem[],
   event: AgentEvent,
   channel: Channel = "web",
+  gmail?: GmailCtx,
 ): Promise<AgentReply | null> {
-  const user = `<channel>${CHANNEL_NOTE[channel]}</channel>\n\n<state>\n${describeState(state)}\n</state>\n\n<thread>\n${renderThread(items)}\n</thread>\n\n<event>\n${describeEvent(event)}\n</event>\n\nWrite your next turn.`;
-  const res = await client.messages.parse({
-    model: MODEL,
-    max_tokens: 4000,
-    system: [{ type: "text", text: TEXT_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-    output_config: { effort: "low", format: zodOutputFormat(ReplySchema) },
-    messages: [{ role: "user", content: user }],
-  });
-  const out = res.parsed_output as AgentReply | null;
-  if (!out) return null;
-  out.messages = out.messages.map((m) => m.trim()).filter((m) => m && !INTERNAL.test(m)).slice(0, 3);
-  return out;
+  const caps = `Tools available now: web_search (live web)${gmail ? ", gmail_search + gmail_read (their real inbox)" : " (Gmail tools unavailable: not connected or demo mode)"}.`;
+  const user = `<channel>${CHANNEL_NOTE[channel]} ${caps}</channel>\n\n<state>\n${describeState(state)}\n</state>\n\n<thread>\n${renderThread(items)}\n</thread>\n\n<event>\n${describeEvent(event)}\n</event>\n\nWrite your next turn.`;
+  const tools: Anthropic.Messages.ToolUnion[] = [
+    { type: "web_search_20260209", name: "web_search", max_uses: 3 },
+    ...(gmail ? GMAIL_TOOLS : []),
+  ];
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: user }];
+
+  for (let step = 0; step < 6; step++) {
+    const res = await client.messages.parse({
+      model: MODEL,
+      max_tokens: 6000,
+      system: [{ type: "text", text: TEXT_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      output_config: { effort: "low", format: zodOutputFormat(ReplySchema) },
+      tools,
+      messages,
+    });
+    if (res.stop_reason === "pause_turn") {
+      messages.push({ role: "assistant", content: res.content });
+      continue;
+    }
+    if (res.stop_reason === "tool_use") {
+      messages.push({ role: "assistant", content: res.content });
+      const results: Anthropic.ToolResultBlockParam[] = [];
+      for (const b of res.content) {
+        if (b.type !== "tool_use") continue;
+        let out = "unavailable";
+        try { if (gmail) out = await runGmailTool(gmail, b.name, b.input as Record<string, string>); } catch (e) { out = `error: ${String(e).slice(0, 200)}`; }
+        results.push({ type: "tool_result", tool_use_id: b.id, content: out });
+      }
+      messages.push({ role: "user", content: results });
+      continue;
+    }
+    const out = res.parsed_output as AgentReply | null;
+    if (!out) return null;
+    out.messages = out.messages.map((m) => m.trim()).filter((m) => m && !INTERNAL.test(m)).slice(0, 4);
+    return out;
+  }
+  return null;
 }
 
 const Digest = z.object({ messages: z.array(z.string()) });

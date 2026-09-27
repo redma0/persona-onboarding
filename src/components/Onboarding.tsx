@@ -224,6 +224,11 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     setTyping(true);
     try {
       let reply: AgentReply | null = null;
+      // research can take a while: after ~5s of silence, acknowledge like a person would
+      const ack = ev.type === "user_message" ? setTimeout(() => {
+        const lines = ["on it, one sec", "looking now", "give me a sec, checking", "one sec, digging in"];
+        void say([lines[Math.floor(Math.random() * lines.length)]]).then(() => setTyping(true));
+      }, 5500) : undefined;
       for (let attempt = 0; attempt < 2 && !reply; attempt++) {
         try {
           const r = await fetch("/api/chat", {
@@ -234,6 +239,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
           if (r.ok) reply = await r.json();
         } catch {}
       }
+      clearTimeout(ack);
       if (reply && !("error" in reply)) {
         failures.current = 0;
         await apply(reply, ev);
@@ -304,13 +310,13 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     save_user_name: ({ name }: { name?: string }) => {
       const n = cap(clean(name));
       if (!n) return "No name given.";
-      patch((s) => ({ ...s, userName: n }));
+      patch((s) => (s.userName ? { ...s, userName: n } : award({ ...s, userName: n }, "user_name")));
       return `Saved: ${n}`;
     },
     save_help_need: ({ need }: { need?: string }) => {
       const n = clean(need, 200);
       if (!n) return "Nothing to save.";
-      patch((s) => ({ ...s, helpNeed: n }));
+      patch((s) => (s.helpNeed ? { ...s, helpNeed: n } : award({ ...s, helpNeed: n }, "help_need")));
       return "Saved.";
     },
     get_status: () => {
