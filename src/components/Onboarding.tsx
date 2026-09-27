@@ -529,6 +529,28 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     debounce.current = setTimeout(() => void runAgent(isFirst ? { type: "first_contact" } : { type: "user_message" }), 650);
   };
 
+  // Demo toggle: preview the Band upsell without earning it (items tagged so they can be removed again)
+  const bandPreviewOn = items.some((i) => i.id.startsWith("demo-band"));
+  const toggleBandPreview = () => {
+    if (bandPreviewOn) {
+      itemsRef.current = itemsRef.current.filter((i) => !i.id.startsWith("demo-band"));
+      setItemsRaw(itemsRef.current);
+      persist();
+      setBandSheet(false);
+      return;
+    }
+    setEntered(true);
+    const at = Date.now();
+    const demo: ChatItem[] = [
+      { id: "demo-band-1", role: "agent", kind: "text", at, text: "side note: this is exactly what persona band is for. next time you're driving or your hands are full, just say it to your wrist and approve with a tap" },
+      { id: "demo-band-2", role: "agent", kind: "text", at: at + 1, text: "here's a quick look if you're curious, no pressure" },
+      { id: "demo-band-3", role: "agent", kind: "band_card", at: at + 2 },
+    ];
+    itemsRef.current = [...itemsRef.current, ...demo];
+    setItemsRaw(itemsRef.current);
+    persist();
+  };
+
   const reset = () => {
     try { convo.endSession(); } catch {}
     stopRing();
@@ -650,6 +672,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         onVoice={(id) => patch((s) => ({ ...s, voiceId: id }))}
         onReset={reset}
         commitment={score(state)}
+        bandPreview={bandPreviewOn}
+        onToggleBandPreview={toggleBandPreview}
         bandShown={!!state.bandShown}
       />
       </div>

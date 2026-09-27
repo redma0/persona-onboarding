@@ -4,8 +4,10 @@ import { Wordmark } from "./brand";
 import { BAND_THRESHOLD } from "@/lib/engagement";
 
 export function SidePanel({
-  state, googleConfigured, voices, onVoice, onReset, commitment, bandShown,
+  state, googleConfigured, voices, onVoice, onReset, commitment, bandShown, bandPreview, onToggleBandPreview,
 }: {
+  bandPreview: boolean;
+  onToggleBandPreview: () => void;
   commitment: number;
   bandShown: boolean;
   state: OnboardingState;
@@ -53,6 +55,12 @@ export function SidePanel({
         <div className="mt-[6px] h-[4px] rounded-full bg-black/[0.07] overflow-hidden">
           <div className="h-full rounded-full bg-[#111] transition-all duration-700" style={{ width: `${Math.min(100, (commitment / BAND_THRESHOLD) * 100)}%` }} />
         </div>
+        <button onClick={onToggleBandPreview} className="mt-[14px] w-full flex items-center justify-between text-[13px] text-[#555]">
+          <span>Preview Band upsell</span>
+          <span className={`relative w-[42px] h-[26px] rounded-full transition-colors ${bandPreview ? "bg-[#34c759]" : "bg-black/[0.12]"}`}>
+            <span className={`absolute top-[2px] w-[22px] h-[22px] rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.2)] transition-all ${bandPreview ? "left-[18px]" : "left-[2px]"}`} />
+          </span>
+        </button>
       </div>
     </aside>
   );
