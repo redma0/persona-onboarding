@@ -256,3 +256,17 @@ export async function phoneForCall(callId: string | null) {
 }
 
 export const googleMode = () => (googleConfigured() ? "live" : "demo");
+
+/** One gentle nudge if they go quiet mid-onboarding with a question hanging. */
+export async function scheduleNudge(phone: string) {
+  const u0 = await load(phone);
+  if (!u0 || u0.state.graduated) return;
+  const stamp = u0.items[u0.items.length - 1]?.id;
+  await sleep(170_000);
+  const u = await load(phone);
+  if (!u || u.state.graduated || u.call?.status === "active" || u.call?.status === "ringing") return;
+  const last = u.items[u.items.length - 1];
+  if (!last || last.id !== stamp || last.role !== "agent" || (u.nudgedAt && u.nudgedAt > u.lastActivity)) return;
+  await update(phone, (x) => { x.nudgedAt = Date.now(); });
+  await processEvent(phone, { type: "nudge" });
+}

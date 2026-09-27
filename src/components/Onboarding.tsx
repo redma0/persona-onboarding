@@ -8,9 +8,10 @@ import { buildFirstMessage, buildVoicePrompt, describeState } from "@/lib/prompt
 import { blip, startRing, stopRing } from "@/lib/ringtone";
 import { downloadVCard } from "@/lib/vcard";
 import { Mist } from "./brand";
-import { AgentAvatar, StartScreen } from "./persona-ui";
-import { Bubble, CallLog, ContactCard, Divider, GoogleLinkCard, PhoneIcon, Typing } from "./ui";
-import { ActiveCall, CallPill, IncomingCall } from "./Call";
+import { DynamicIsland, HomeIndicator, IBubble, ITyping, InputBar, NavBar, StatusBar, ThreadStamp } from "./ios";
+import { StartScreen } from "./persona-ui";
+import { ContactCard, GoogleLinkCard } from "./ui";
+import { ActiveCall, CallPill, IncomingCall, useClock } from "./Call";
 import { SidePanel } from "./SidePanel";
 
 const STORE = "persona-onboarding-v1";
@@ -508,6 +509,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   }, [items.length, typing]);
 
   const lastLinkId = [...items].reverse().find((i) => i.kind === "google_link")?.id;
+  const lastUserIdx = items.map((i) => i.role === "user" && i.kind === "text").lastIndexOf(true);
+  const callClock = useClock(connected ? startedAt : undefined);
   const name = state.agentName;
 
   const started = entered || items.length > 0;
@@ -519,61 +522,37 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       <div className="relative w-full sm:w-auto sm:py-6">
         <Mist id="bg" sides className="hidden sm:block absolute -left-48 -right-28 -inset-y-6 w-[calc(100%+19rem)] h-[calc(100%+3rem)] [mask-image:radial-gradient(ellipse_closest-side,black_72%,transparent)]" />
       <div className="relative w-full h-dvh sm:w-[396px] sm:h-[min(852px,calc(100dvh-64px))] sm:rounded-[64px] sm:p-[11px] sm:bg-[linear-gradient(145deg,#f1f1f2_0%,#b9babd_22%,#e9e9eb_48%,#a4a5a9_78%,#d8d9db_100%)] sm:shadow-[0_50px_90px_-30px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.6)]">
-      <div className="font-ios relative w-full h-full sm:rounded-[54px] sm:ring-[3px] sm:ring-black bg-screen overflow-hidden flex flex-col">
-        {/* status bar + dynamic island (desktop frame only) */}
-        <div className="hidden sm:flex relative z-40 h-[50px] shrink-0 items-center justify-between px-8 pt-1 text-[15px] font-semibold text-ink">
-          <span>9:41</span>
-          <span className="absolute left-1/2 top-[11px] -translate-x-1/2 w-[112px] h-[32px] rounded-full bg-black" />
-          <span className="flex items-center gap-1.5">
-            <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1" /><rect x="4.5" y="5" width="3" height="6" rx="1" /><rect x="9" y="2.5" width="3" height="8.5" rx="1" /><rect x="13.5" y="0" width="3" height="11" rx="1" /></svg>
-            <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.2c2 0 3.9.8 5.3 2.1l1.1-1.1A9.1 9.1 0 007.5.6 9.1 9.1 0 001.1 3.2l1.1 1.1a7.5 7.5 0 015.3-2.1zm0 3.2c1.1 0 2.2.4 3 1.2l1.1-1.1a5.9 5.9 0 00-8.2 0l1.1 1.1c.8-.8 1.9-1.2 3-1.2zm0 3.2c-.4 0-.8.2-1.1.5l1.1 1.1 1.1-1.1c-.3-.3-.7-.5-1.1-.5z" /></svg>
-            <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3.5" stroke="currentColor" opacity=".4" /><rect x="2" y="2" width="18" height="8" rx="2" fill="currentColor" /><path d="M23 4v4c.8-.3 1.3-1.1 1.3-2S23.8 4.3 23 4z" fill="currentColor" opacity=".45" /></svg>
-          </span>
-        </div>
+      <div className="font-ios relative w-full h-full sm:rounded-[54px] sm:ring-[3px] sm:ring-black bg-white overflow-hidden">
+        <StatusBar tone={callUI !== "none" && !minimized ? "light" : "dark"} className="hidden sm:flex" />
+        <div className="hidden sm:block"><DynamicIsland call={callUI === "active" && minimized ? (connected ? callClock : "…") : null} onClick={() => setMinimized(false)} /></div>
 
         {!started && <StartScreen onContinue={() => { setEntered(true); setDraft(FIRST_DRAFT); }} />}
 
-        {/* header */}
-        <header className="relative z-10 pt-[max(env(safe-area-inset-top),10px)] sm:pt-1 pb-2 px-3 bg-screen/80 backdrop-blur-xl">
-          <div className="flex items-start">
-            <button
-              onClick={() => confirm("Start the onboarding over?") && reset()}
-              className="w-10 h-10 mt-1 grid place-items-center rounded-full bg-card text-ink/80 active:opacity-70"
-              aria-label="Start over"
-            >
-              <svg width="11" height="18" viewBox="0 0 11 18" fill="none"><path d="M9 1.5L2 9l7 7.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </button>
-            <div className="flex-1 flex flex-col items-center">
-              <AgentAvatar size={54} />
-              <div className="-mt-1.5 relative rounded-full bg-screen/90 border border-hairline px-2.5 py-[3px] text-[12.5px] font-semibold flex items-center gap-1 shadow-sm">
-                {name || "Persona"} <span className="text-muted font-normal text-[10px]">›</span>
-              </div>
-            </div>
-            <button
-              onClick={() => (callUI === "active" ? setMinimized(false) : callUI === "none" && connect(true))}
-              className="w-10 h-10 mt-1 grid place-items-center rounded-full bg-card text-ink/80 active:opacity-70"
-              aria-label="Call"
-            >
-              <PhoneIcon size={18} />
-            </button>
-          </div>
-        </header>
+        <NavBar
+          name={name}
+          onBack={() => confirm("Start the onboarding over?") && reset()}
+          onCall={() => (callUI === "active" ? setMinimized(false) : callUI === "none" && connect(true))}
+        />
 
-        {callUI === "active" && minimized && <CallPill name={name} startedAt={connected ? startedAt : undefined} onClick={() => setMinimized(false)} />}
+        {callUI === "active" && minimized && <div className="sm:hidden"><CallPill name={name} startedAt={connected ? startedAt : undefined} onClick={() => setMinimized(false)} /></div>}
 
         {/* thread */}
-        <div ref={scroller} className="flex-1 overflow-y-auto no-scrollbar px-3 pt-4 pb-3 flex flex-col gap-[3px]">
-          <div className="text-center text-[11px] text-muted mb-3">
-            <div className="font-medium">iMessage</div>
-            <div>Today {hydrated ? new Date(items[0]?.at ?? now0).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}</div>
-          </div>
+        <div ref={scroller} className="absolute inset-0 overflow-y-auto no-scrollbar px-[16px] pt-[calc(max(env(safe-area-inset-top),14px)+96px)] sm:pt-[150px] pb-[96px] flex flex-col">
+          <ThreadStamp top="iMessage" bottom={`Today ${hydrated ? new Date(items[0]?.at ?? now0).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}`} />
           {items.map((it, idx) => {
             const next = items[idx + 1];
+            const prev = items[idx - 1];
             const tail = !next || next.role !== it.role || next.kind !== "text";
-            const gap = idx > 0 && items[idx - 1].role !== it.role ? "mt-2" : "";
+            const gap = !prev ? "" : prev.role !== it.role || prev.kind !== it.kind ? "mt-[10px]" : "mt-[2px]";
+            const isLastUser = idx === lastUserIdx;
             return (
               <div key={it.id} className={gap}>
-                {it.kind === "text" && <Bubble item={it} tail={tail} />}
+                {it.kind === "text" && <IBubble text={it.text || ""} me={it.role === "user"} tail={tail} />}
+                {isLastUser && (
+                  <div className="text-right text-[11px] leading-[13px] text-[#8e8e93] mt-[3px] mr-[4px] fade-in">
+                    {items.slice(idx + 1).some((x) => x.role === "agent") || typing ? "Read" : "Delivered"}
+                  </div>
+                )}
                 {it.kind === "contact_card" && (
                   <ContactCard name={it.text!} saved={contactSaved} onSave={() => { downloadVCard(it.text!); setContactSaved(true); }} />
                 )}
@@ -583,40 +562,17 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
                     state={state.google.status === "connected" ? "connected" : googleWaiting && it.id === lastLinkId ? "waiting" : "idle"}
                   />
                 )}
-                {it.kind === "call_log" && <CallLog text={it.text!} />}
-                {it.kind === "divider" && <Divider text={it.text!} />}
+                {(it.kind === "call_log" || it.kind === "divider") && (
+                  <ThreadStamp bottom={it.kind === "divider" ? "You're all set" : it.text!} />
+                )}
               </div>
             );
           })}
-          {typing && <div className="mt-2"><Typing /></div>}
+          {typing && <div className="mt-[10px] mb-[4px]"><ITyping /></div>}
         </div>
 
-        {/* composer */}
-        <div className="px-3 pt-2 pb-[max(env(safe-area-inset-bottom),10px)] sm:pb-7 bg-screen flex items-end gap-2">
-          <span className="w-9 h-9 shrink-0 grid place-items-center rounded-full bg-card text-muted mb-px text-[22px] leading-none">+</span>
-          <form
-            onSubmit={(e) => { e.preventDefault(); send(); }}
-            className="flex items-end gap-2 rounded-[22px] border border-hairline pl-4 pr-1.5 py-1.5 bg-screen"
-          >
-            <textarea
-              ref={composer}
-              rows={1}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder="iMessage"
-              className="flex-1 resize-none bg-transparent outline-none text-[16px] leading-[1.35] py-1 max-h-28 placeholder:text-muted"
-            />
-            <button
-              type="submit"
-              disabled={!draft.trim()}
-              className="w-8 h-8 shrink-0 grid place-items-center rounded-full bg-me text-white disabled:opacity-0 transition"
-              aria-label="Send"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-            </button>
-          </form>
-          </div>
+        <InputBar ref={composer} value={draft} onChange={setDraft} onSend={send} />
+        <HomeIndicator tone={callUI !== "none" && !minimized ? "light" : "dark"} />
 
         {callUI === "incoming" && <IncomingCall name={name} onAccept={() => connect(false)} onDecline={decline} />}
         {callUI === "active" && !minimized && (
