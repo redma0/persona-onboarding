@@ -1,6 +1,6 @@
 "use client";
 import { hueFor } from "@/lib/vcard";
-import { Logo, Mist } from "./brand";
+import { Logo } from "./brand";
 import type { ChatItem } from "@/lib/types";
 
 export function Avatar({ name, size = 40, className = "" }: { name?: string; size?: number; className?: string }) {
@@ -85,8 +85,9 @@ export function GoogleLinkCard({ onConnect, state }: { onConnect: () => void; st
     <div className="flex justify-start pop-in">
       <button onClick={onConnect} disabled={state === "connected"} className="w-[262px] rounded-[18px] overflow-hidden bg-them text-them-ink text-left active:opacity-90">
         <div className="relative h-[168px] overflow-hidden">
-          <Mist id="card" className="absolute inset-0 w-full h-full" />
-          <div className="absolute left-4 top-4 flex items-center gap-1 text-[11px] font-semibold text-[#3a3a37]"><Logo size={12} strokeWidth={2.4} /> Persona</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/persona/photo.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-[50%_70%] grayscale-[35%] opacity-90" />
+          <div className="absolute left-4 top-4 flex items-center gap-1 text-[11px] font-semibold text-[#3a3a37]"><Logo size={12} /> Persona</div>
           <div className="absolute left-4 top-10 text-[24px] leading-[1.08] font-medium tracking-[-0.025em] text-[#2b2b29]">
             One tap <span className="text-[#6d6d68]">to a</span><br />quieter life
           </div>

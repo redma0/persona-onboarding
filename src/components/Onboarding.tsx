@@ -7,7 +7,6 @@ import {
 import { buildFirstMessage, buildVoicePrompt, describeState } from "@/lib/prompts";
 import { blip, startRing, stopRing } from "@/lib/ringtone";
 import { downloadVCard } from "@/lib/vcard";
-import { Mist } from "./brand";
 import { DynamicIsland, HomeIndicator, IBubble, ITyping, InputBar, NavBar, StatusBar, ThreadStamp } from "./ios";
 import { StartScreen } from "./persona-ui";
 import { ContactCard, GoogleLinkCard } from "./ui";
@@ -71,6 +70,14 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   const [entered, setEntered] = useState(false);
   const composer = useRef<HTMLTextAreaElement>(null);
   const [now0] = useState(() => Date.now());
+  // desktop: scale the whole phone so it keeps real iPhone proportions at any window height
+  const [phoneScale, setPhoneScale] = useState<number | null>(null);
+  useEffect(() => {
+    const fit = () => setPhoneScale(window.innerWidth >= 640 ? Math.min(0.8, (window.innerHeight * 0.76) / 906) : null);
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
   useEffect(() => { if (entered) setTimeout(() => composer.current?.focus(), 350); }, [entered]);
   const [draft, setDraft] = useState("");
   const [callUI, setCallUI] = useState<CallUI>("none");
@@ -516,23 +523,28 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   const started = entered || items.length > 0;
 
   return (
-    <div className="relative min-h-dvh w-full overflow-hidden bg-page">
-      <div aria-hidden className="pointer-events-none select-none absolute -bottom-[5vw] left-1/2 -translate-x-1/2 whitespace-nowrap text-[22vw] font-semibold tracking-[-0.05em] text-ink/[0.035] leading-none hidden lg:block">Persona</div>
-      <div className="relative min-h-dvh w-full flex items-center justify-center lg:gap-24 sm:p-6">
-      <div className="relative w-full sm:w-auto sm:py-6">
-        <Mist id="bg" sides className="hidden sm:block absolute -left-48 -right-28 -inset-y-6 w-[calc(100%+19rem)] h-[calc(100%+3rem)] [mask-image:radial-gradient(ellipse_closest-side,black_72%,transparent)]" />
-      <div className="relative w-full h-dvh sm:w-[396px] sm:h-[min(852px,calc(100dvh-64px))] sm:rounded-[64px] sm:p-[11px] sm:bg-[linear-gradient(145deg,#f1f1f2_0%,#b9babd_22%,#e9e9eb_48%,#a4a5a9_78%,#d8d9db_100%)] sm:shadow-[0_50px_90px_-30px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,255,255,0.6)]">
-      <div className="font-ios relative w-full h-full sm:rounded-[54px] sm:ring-[3px] sm:ring-black bg-white overflow-hidden">
+    <div className="relative min-h-dvh w-full overflow-hidden bg-white">
+      <div className="relative min-h-dvh w-full flex items-center justify-center lg:gap-[clamp(48px,8vw,140px)] sm:p-6">
+      {/* left: phone inside a feathered misty photo, like yourpersona.com */}
+      <div className="relative w-full sm:w-auto sm:grid sm:place-items-center" style={phoneScale ? { width: 435 * phoneScale * 2.1, height: 906 * phoneScale * 1.08 } : undefined}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/persona/photo.webp" alt="" aria-hidden className="hidden sm:block absolute inset-0 w-full h-full object-cover [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent),linear-gradient(to_bottom,transparent,black_16%,black_80%,transparent)] [mask-composite:intersect] [-webkit-mask-composite:source-in] rounded-[40px] pointer-events-none" />
+      {/* iPhone 17 Pro frame (Persona's own SVG); our screen sits in its 397x864 cutout */}
+      <div className="relative w-full h-dvh sm:w-[435px] sm:h-[906px]" style={phoneScale ? { transform: `scale(${phoneScale})`, margin: `${(906 * phoneScale - 906) / 2}px ${(435 * phoneScale - 435) / 2}px` } : undefined}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/persona/iphone-17-pro-silver.svg" alt="" aria-hidden className="hidden sm:block absolute inset-0 w-full h-full z-[70] pointer-events-none select-none" />
+        <div className="relative w-full h-full sm:absolute sm:left-[18.8px] sm:top-[20.8px] sm:w-[397.4px] sm:h-[864px] sm:rounded-[70px] overflow-hidden">
+      <div className="font-ios relative w-full h-full bg-white overflow-hidden">
         <StatusBar tone={callUI !== "none" && !minimized ? "light" : "dark"} className="hidden sm:flex" />
         <div className="hidden sm:block"><DynamicIsland call={callUI === "active" && minimized ? (connected ? callClock : "…") : null} onClick={() => setMinimized(false)} /></div>
 
         {!started && <StartScreen onContinue={() => { setEntered(true); setDraft(FIRST_DRAFT); }} />}
 
-        <NavBar
+        {started && <NavBar
           name={name}
           onBack={() => confirm("Start the onboarding over?") && reset()}
           onCall={() => (callUI === "active" ? setMinimized(false) : callUI === "none" && connect(true))}
-        />
+        />}
 
         {callUI === "active" && minimized && <div className="sm:hidden"><CallPill name={name} startedAt={connected ? startedAt : undefined} onClick={() => setMinimized(false)} /></div>}
 
@@ -571,7 +583,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
           {typing && <div className="mt-[10px] mb-[4px]"><ITyping /></div>}
         </div>
 
-        <InputBar ref={composer} value={draft} onChange={setDraft} onSend={send} />
+        {started && <InputBar ref={composer} value={draft} onChange={setDraft} onSend={send} />}
         <HomeIndicator tone={callUI !== "none" && !minimized ? "light" : "dark"} />
 
         {callUI === "incoming" && <IncomingCall name={name} onAccept={() => connect(false)} onDecline={decline} />}
@@ -590,6 +602,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
           />
         )}
       </div>
+      </div>
 
       </div>
       </div>
@@ -599,7 +612,6 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         voices={VOICES}
         onVoice={(id) => patch((s) => ({ ...s, voiceId: id }))}
         onReset={reset}
-        inCall={callUI !== "none"}
       />
       </div>
     </div>

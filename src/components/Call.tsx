@@ -26,7 +26,7 @@ function Poster() {
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#1c1c1e]">
       <div className="absolute inset-0" style={{ background: "radial-gradient(90% 60% at 50% 18%, #5b5d63 0%, #2c2d31 55%, #111113 100%)" }} />
-      <Logo size={560} strokeWidth={1.1} className="absolute left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2 text-white/[0.05]" />
+      <Logo size={560} className="absolute left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2 text-white/[0.05]" />
     </div>
   );
 }
