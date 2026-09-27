@@ -137,7 +137,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       const d = await r.json().catch(() => ({}));
       if (d.demo) {
         await sleep(900);
-        await say(["(demo mode: real google sign-in isn't switched on for this deployment, so i can't actually read an inbox here. with it on, your digest of what needs you lands right here.)"]);
+        await say(["you're connected with the demo sign-in, so there's no real inbox for me to read. with real google sign-in, this is where a quick digest of what actually needs you lands"]);
       } else if (d.messages?.length) {
         await say(d.messages);
       } else {
@@ -443,11 +443,19 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     if (!w) window.open("/api/google/start", "_blank");
   };
 
-  const onGoogleResult = useCallback((p: { ok: boolean; email?: string; name?: string; demo?: boolean }) => {
+  const onGoogleResult = useCallback((p: { ok: boolean; email?: string; name?: string; demo?: boolean; reason?: string }) => {
     setGoogleWaiting(false);
     const s = stateRef.current;
     if (!p.ok) {
-      if (callUIRef.current === "active") convo.sendContextualUpdate("The user closed the Google sign-in without connecting.");
+      // Google blocks non-approved testers while the app is unverified: explain and offer the demo sign-in
+      const blocked = /access_denied|denied|blocked/i.test(p.reason ?? "");
+      if (callUIRef.current === "active") {
+        convo.sendContextualUpdate(blocked
+          ? "Google blocked the sign-in because this app is still waiting on Google's approval. Briefly tell them that's on Google's side, and that they can tap 'Use demo sign-in' under the card to finish."
+          : "The user closed the Google sign-in without connecting.");
+      } else if (blocked) {
+        void say(["looks like google blocked that one. this preview is still waiting on google's approval, so it only lets approved testers in", "no worries, tap \"use demo sign-in\" under the card and you can finish the flow"]);
+      }
       return;
     }
     if (s.google.status === "connected" && s.google.email === p.email) return;
@@ -460,7 +468,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     } else {
       void runAgent({ type: "google_connected" });
     }
-  }, [convo, patch, runAgent]);
+  }, [convo, patch, runAgent, say]);
 
   useEffect(() => {
     const onMsg = (e: MessageEvent) => { if (e.origin === location.origin && e.data?.source === "google") onGoogleResult(e.data); };
@@ -652,6 +660,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
                 {it.kind === "google_link" && (
                   <GoogleLinkCard
                     onConnect={openGoogle}
+                    onDemo={() => { setGoogleWaiting(true); const w = window.open("/connect/demo", "google-connect", "width=480,height=660"); if (!w) window.open("/connect/demo", "_blank"); }}
                     state={state.google.status === "connected" ? "connected" : googleWaiting && it.id === lastLinkId ? "waiting" : "idle"}
                   />
                 )}

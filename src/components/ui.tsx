@@ -80,9 +80,9 @@ export function ContactCard({ name, onSave, saved }: { name: string; onSave: () 
   );
 }
 
-export function GoogleLinkCard({ onConnect, state }: { onConnect: () => void; state: "idle" | "waiting" | "connected" }) {
+export function GoogleLinkCard({ onConnect, onDemo, state }: { onConnect: () => void; onDemo?: () => void; state: "idle" | "waiting" | "connected" }) {
   return (
-    <div className="flex justify-start pop-in">
+    <div className="flex flex-col items-start pop-in">
       <button onClick={onConnect} disabled={state === "connected"} className="w-[262px] rounded-[18px] overflow-hidden bg-them text-them-ink text-left active:opacity-90">
         <div className="relative h-[168px] overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -100,6 +100,11 @@ export function GoogleLinkCard({ onConnect, state }: { onConnect: () => void; st
           <div className="text-[12px] text-muted">{typeof location !== "undefined" ? location.host : "yourpersona"}</div>
         </div>
       </button>
+      {onDemo && state !== "connected" && (
+        <button onClick={onDemo} className="mt-[4px] ml-[4px] text-[11px] text-[#8e8e93]">
+          Trouble connecting? <span className="text-[#0088ff]">Use demo sign-in</span>
+        </button>
+      )}
     </div>
   );
 }

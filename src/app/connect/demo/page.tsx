@@ -34,7 +34,7 @@ export default function DemoGoogle() {
           <>
             <h1 className="mt-4 text-2xl">Sign in to continue to Persona</h1>
             <p className="mt-2 text-sm text-[#5f6368]">
-              Demo mode: real Google sign-in isn&apos;t configured on this deployment, so this simulates it.
+              Demo sign-in: this simulates connecting Google so you can try the flow. Nothing is read from a real account.
             </p>
             <input
               autoFocus
