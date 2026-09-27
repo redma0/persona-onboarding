@@ -11,6 +11,7 @@ import { DynamicIsland, HomeIndicator, IBubble, ITyping, InputBar, NavBar, Statu
 import { StartScreen } from "./persona-ui";
 import { ContactCard, GoogleLinkCard } from "./ui";
 import { AppClipCard, BandClip, BandLink } from "./band";
+import { LinkPreview, splitLinks } from "./LinkPreview";
 import { award, bandUnlocked, score } from "@/lib/engagement";
 import { canGraduate, recordAsked } from "@/lib/onboarding";
 import { ActiveCall, CallPill, IncomingCall, useClock } from "./Call";
@@ -628,7 +629,18 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
             const isLastUser = idx === lastUserIdx;
             return (
               <div key={it.id} className={gap}>
-                {it.kind === "text" && <IBubble text={it.text || ""} me={it.role === "user"} tail={tail} />}
+                {it.kind === "text" && (() => {
+                  // agent links render like iMessage: the text, then a rich preview card per URL
+                  const { rest, urls } = it.role === "agent" ? splitLinks(it.text || "") : { rest: it.text || "", urls: [] as string[] };
+                  return (
+                    <>
+                      {rest && <IBubble text={rest} me={it.role === "user"} tail={tail && !urls.length} />}
+                      {urls.map((u, k) => (
+                        <div key={u} className={rest || k ? "mt-[2px]" : ""}><LinkPreview url={u} tail={tail && k === urls.length - 1} /></div>
+                      ))}
+                    </>
+                  );
+                })()}
                 {isLastUser && (
                   <div className="text-right text-[11px] leading-[13px] text-[#8e8e93] mt-[3px] mr-[4px] fade-in">
                     {items.slice(idx + 1).some((x) => x.role === "agent") || typing ? "Read" : "Delivered"}
