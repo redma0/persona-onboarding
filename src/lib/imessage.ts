@@ -5,7 +5,7 @@ import { runTextAgent, inboxDigest } from "./agent";
 import { sendMedia, sendText, sendTyping } from "./sendblue";
 import { placeCall, twilioConfigured } from "./twilio";
 import { freshAccessToken, seal, unseal, type GoogleSession, googleConfigured } from "./session";
-import { initialState, type AgentEvent, type AgentReply, type ChatItem, type OnboardingState } from "./types";
+import { initialState, VOICE_FOR, type AgentEvent, type AgentReply, type ChatItem, type OnboardingState } from "./types";
 
 export const APP = () => process.env.APP_URL || "https://persona-onboarding-riyad.vercel.app";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -130,6 +130,7 @@ async function deliver(phone: string, reply: AgentReply, ev: AgentEvent) {
     x.state.agentName = cap(clean(up.agent_name)) ?? x.state.agentName;
     x.state.userName = cap(clean(up.user_name)) ?? x.state.userName;
     x.state.helpNeed = clean(up.help_need, 200) ?? x.state.helpNeed;
+    if (up.agent_voice && !x.state.voiceLocked) x.state.voiceId = VOICE_FOR[up.agent_voice];
     x.state.declined = {
       call: x.state.declined.call || reply.declined_call,
       google: x.state.declined.google || reply.declined_google,

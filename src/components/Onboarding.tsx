@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import {
-  type AgentEvent, type AgentReply, type ChatItem, type OnboardingState, VOICES, initialState,
+  type AgentEvent, type AgentReply, type ChatItem, type OnboardingState, VOICES, VOICE_FOR, initialState,
 } from "@/lib/types";
 import { buildFirstMessage, buildVoicePrompt, describeState } from "@/lib/prompts";
 import { blip, startRing, stopRing } from "@/lib/ringtone";
@@ -170,6 +170,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         },
       };
       if (n.agentName && !s.agentName) n = award(n, "named_agent");
+      if (u.agent_voice && !s.voiceLocked) n = { ...n, voiceId: VOICE_FOR[u.agent_voice] };
       if (n.userName && !s.userName) n = award(n, "user_name");
       if (n.helpNeed && !s.helpNeed) n = award(n, "help_need");
       if (reply.task_request && ev.type === "user_message") n = award(n, "task");
@@ -671,7 +672,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
         state={state}
         googleConfigured={googleConfigured}
         voices={VOICES}
-        onVoice={(id) => patch((s) => ({ ...s, voiceId: id }))}
+        onVoice={(id) => patch((s) => ({ ...s, voiceId: id, voiceLocked: true }))}
         onReset={reset}
         commitment={score(state)}
         bandPreview={bandPreviewOn}

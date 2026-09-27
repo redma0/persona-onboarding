@@ -15,6 +15,8 @@ export interface OnboardingState {
   /** commitment score (see lib/engagement.ts) */
   engagement?: { points: number; counts: Record<string, number> };
   bandShown?: boolean;
+  /** true once the user picks a voice by hand; otherwise the voice follows the agent's name */
+  voiceLocked?: boolean;
 }
 
 export type ItemKind = "text" | "contact_card" | "google_link" | "call_log" | "divider" | "band_card";
@@ -43,7 +45,7 @@ export type AgentAction = "send_contact_card" | "start_call" | "send_google_link
 
 export interface AgentReply {
   messages: string[];
-  updates: { agent_name: string | null; user_name: string | null; help_need: string | null };
+  updates: { agent_name: string | null; user_name: string | null; help_need: string | null; agent_voice: "male" | "female" | "neutral" | null };
   actions: AgentAction[];
   declined_call: boolean;
   declined_google: boolean;
@@ -59,7 +61,15 @@ export const VOICES = [
   { id: "ljX1ZrXuDIIRVcmiVSyR", label: "Michael", desc: "genuine, approachable" },
   { id: "iP95p4xoKVk53GoZ742B", label: "Chris", desc: "down-to-earth" },
   { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah", desc: "calm, reassuring" },
+  { id: "SAz9YHcvj6GT2YYXdXww", label: "River", desc: "relaxed, neutral" },
 ];
+
+/** Default voice for the gender the agent's name suggests. */
+export const VOICE_FOR: Record<"male" | "female" | "neutral", string> = {
+  male: "iP95p4xoKVk53GoZ742B", // Chris
+  female: "cgSgspJ2msm6clMCkdW9", // Jessica
+  neutral: "SAz9YHcvj6GT2YYXdXww", // River
+};
 
 export const initialState = (): OnboardingState => ({
   google: { status: "none" },

@@ -13,6 +13,7 @@ const ReplySchema = z.object({
     agent_name: z.string().nullable(),
     user_name: z.string().nullable(),
     help_need: z.string().nullable(),
+    agent_voice: z.enum(["male", "female", "neutral"]).nullable(),
   }),
   actions: z.array(z.enum(["send_contact_card", "start_call", "send_google_link", "graduate", "send_inbox_summary", "send_band"])),
   declined_call: z.boolean(),
