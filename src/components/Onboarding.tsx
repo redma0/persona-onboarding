@@ -53,8 +53,19 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   const stateRef = useRef(state);
   const itemsRef = useRef(items);
 
+  const logTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const persist = () => {
     try { localStorage.setItem(STORE, JSON.stringify({ state: stateRef.current, items: itemsRef.current })); } catch {}
+    // also save the conversation server-side for review (debounced)
+    clearTimeout(logTimer.current);
+    logTimer.current = setTimeout(() => {
+      try {
+        let sid = localStorage.getItem("persona-sid");
+        if (!sid) { sid = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem("persona-sid", sid); }
+        if (!itemsRef.current.length) return;
+        void fetch("/api/log", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sid, state: stateRef.current, items: itemsRef.current }), keepalive: true });
+      } catch {}
+    }, 1500);
   };
   const patch = useCallback((fn: (s: OnboardingState) => OnboardingState) => {
     stateRef.current = fn(stateRef.current);
@@ -584,6 +595,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     stopRing();
     localStorage.removeItem(STORE);
     localStorage.removeItem("google_result");
+    localStorage.removeItem("persona-sid");
     location.reload();
   };
 

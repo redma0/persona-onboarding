@@ -15,7 +15,7 @@ export default function Privacy() {
         <p className="mt-2">If you choose to connect Google, the app requests <strong>read-only</strong> access to your Gmail and Google Calendar (<code>gmail.readonly</code>, <code>calendar.readonly</code>) plus your name and email address. It uses this only to show you a short summary of recent email and to answer questions you ask about your inbox or calendar. It cannot send email, delete anything, or change your calendar.</p>
 
         <h2 className="mt-10 text-[20px] font-semibold">What we store</h2>
-        <p className="mt-2">Your Google access token is kept in an encrypted, http-only cookie in your browser. Your conversation with the assistant is stored in your browser&apos;s local storage. We don&apos;t keep a copy of your emails or calendar on our servers, and we never sell or share your data.</p>
+        <p className="mt-2">Your Google access token is kept in an encrypted, http-only cookie in your browser. Your conversation with the assistant is stored in your browser&apos;s local storage, and a copy of the conversation (including any assistant messages that summarize your email) is kept on our server for up to 30 days so we can review and improve this prototype. We don&apos;t store your raw emails or calendar, and we never sell or share your data.</p>
 
         <h2 className="mt-10 text-[20px] font-semibold">Service providers</h2>
         <p className="mt-2">To generate replies and voice, the text of your conversation (and any email or calendar content needed to answer you) is processed by Anthropic (Claude) and ElevenLabs (voice calls). The site is hosted on Vercel.</p>
