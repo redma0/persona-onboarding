@@ -10,7 +10,7 @@ if (!sid) {
     const c = await r.get(`chat:${id}`);
     if (!c) continue;
     const s = c.state ?? {};
-    console.log(`${id}  ${new Date(c.updatedAt).toLocaleString()}  ${c.items.length} items  agent=${s.agentName ?? "-"} user=${s.userName ?? "-"} google=${s.google?.status} call=${s.call?.status} graduated=${!!s.graduated}`);
+    console.log(`${id}  ${new Date(c.updatedAt).toLocaleString()}  ${c.items.length} items  agent=${s.agentName ?? "-"} user=${s.userName ?? "-"} google=${s.google?.status} call=${s.call?.status} graduated=${!!s.graduated}  ${c.loc ?? ""}`);
   }
 } else {
   const c = await r.get(`chat:${sid}`);
@@ -20,4 +20,5 @@ if (!sid) {
     console.log(i.kind === "text" ? `[${t}] ${i.role === "user" ? "USER " : "AGENT"}: ${i.text}` : `[${t}] <${i.kind}${i.text ? `: ${i.text}` : ""}>`);
   }
   console.log("\nstate:", JSON.stringify(c.state));
+  console.log(`from: ${c.loc ?? "unknown"}  ua: ${c.ua ?? "-"}`);
 }

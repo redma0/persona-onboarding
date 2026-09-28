@@ -12,7 +12,10 @@ export async function POST(req: Request) {
   const now = Date.now();
   const key = `chat:${d.sid}`;
   const prev = await redis.get<{ startedAt?: number }>(key).catch(() => null);
-  await redis.set(key, { sid: d.sid, startedAt: prev?.startedAt ?? now, updatedAt: now, state: d.state, items: d.items, ua: req.headers.get("user-agent")?.slice(0, 160) }, { ex: TTL });
+  const h = req.headers;
+  // approximate location from Vercel's geo headers (city/region/country only, no IP)
+  const loc = [h.get("x-vercel-ip-city") && decodeURIComponent(h.get("x-vercel-ip-city")!), h.get("x-vercel-ip-country-region"), h.get("x-vercel-ip-country")].filter(Boolean).join(", ") || undefined;
+  await redis.set(key, { sid: d.sid, startedAt: prev?.startedAt ?? now, updatedAt: now, state: d.state, items: d.items, ua: h.get("user-agent")?.slice(0, 160), loc }, { ex: TTL });
   await redis.zadd("chats", { score: now, member: d.sid });
   return Response.json({ ok: true });
 }
