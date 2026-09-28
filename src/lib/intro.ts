@@ -1,10 +1,19 @@
-// The scripted opener (mirrors Persona's own intro) and when to use it.
+// The scripted opener and when to use it.
 
-export const INTRO = [
-  "hey! i'm your new personal assistant",
-  "you can text me or call me anytime and i can help with:\n📞 talking things through on a quick call\n💻 digging through the web for answers\n🛍️ finding and comparing stuff to buy\n✉️ sorting your email and calendar\n🚗 finding DoorDash or Uber options",
-  "first things first, what should my name be?",
-];
+const EXAMPLES = `people text me things like "find a dentist that takes my insurance" or "is anyone waiting on a reply from me?"`;
+const NAME_ASK = "i don't have a name yet though. what should i go by?";
+
+/** Opener bubbles: answer "what's a persona?" literally when asked, otherwise a plain hello. */
+export function introFor(firstText: string): string[] {
+  const asked = /persona|what|who/i.test(firstText);
+  return [
+    asked
+      ? "it's me, your new assistant. i live in your texts and handle the annoying stuff"
+      : "hey! i'm your new assistant. i live in your texts and handle the annoying stuff",
+    EXAMPLES,
+    NAME_ASK,
+  ];
+}
 
 /** Prefilled first text after "Continue with iMessage". */
 export const FIRST_DRAFT = "Hey, what's a persona?";

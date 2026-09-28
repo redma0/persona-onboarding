@@ -7,7 +7,7 @@ import {
 import { buildFirstMessage, buildVoicePrompt, describeState } from "@/lib/prompts";
 import { blip, startRing, stopRing } from "@/lib/ringtone";
 import { downloadVCard } from "@/lib/vcard";
-import { FIRST_DRAFT, GREETING, INTRO } from "@/lib/intro";
+import { FIRST_DRAFT, GREETING, introFor } from "@/lib/intro";
 import { cap, clean, sleep } from "@/lib/util";
 import { DynamicIsland, HomeIndicator, InputBar, NavBar, StatusBar } from "./ios";
 import { StartScreen } from "./StartScreen";
@@ -549,8 +549,9 @@ function Onboarding() {
         busy.current = true;
         setTyping(true);
         await sleep(1100);
-        await say(INTRO.slice(0, 1));
-        await say(INTRO.slice(1), false);
+        const intro = introFor(text);
+        await say(intro.slice(0, 1));
+        await say(intro.slice(1), false);
         patch((s) => recordAsked(s, ["agent_name"], false));
         busy.current = false;
         if (pending.current) { const p = pending.current; pending.current = null; void runAgent(p); }

@@ -16,9 +16,9 @@ const AGENT_MODEL = "claude-opus-5-5";
 const client = new Anthropic();
 const API = process.env.SIM_URL || "http://localhost:3000";
 const INTRO = [
-  "hey! i'm your new personal assistant",
-  "you can text me or call me anytime and i can help with:\n📞 talking things through on a quick call\n💻 digging through the web for answers\n🛍️ finding and comparing stuff to buy\n✉️ sorting your email and calendar\n🚗 finding DoorDash or Uber options",
-  "first things first, what should my name be?",
+  "it's me, your new assistant. i live in your texts and handle the annoying stuff",
+  'people text me things like "find a dentist that takes my insurance" or "is anyone waiting on a reply from me?"',
+  "i don't have a name yet though. what should i go by?",
 ];
 const GREETING = /^\s*(hi+|hey+|hello+|yo+|sup|hiya|howdy)?[\s,!.]*((what'?s|what is|who'?s|who is) (a |an |this|that|up|persona|you)[\w\s]*)?[\s?!.👋]*$/i;
 
