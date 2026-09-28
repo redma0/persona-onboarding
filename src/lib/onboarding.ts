@@ -60,16 +60,19 @@ const HOW: Record<Step, string> = {
 };
 
 /** Plain-language guidance injected into the agent's turn. */
-export function planForPrompt(s: OnboardingState): string {
+export function planForPrompt(s: OnboardingState, hold = false): string {
   if (s.graduated) return "Onboarding is complete. Just be their assistant.";
-  const step = nextStep(s);
+  // their texts crossed with our last reply, which already asked something: don't stack a second question
+  const step = hold ? null : nextStep(s);
   const missing = (["agent_name", "user_name", "help_need", "google", "call"] as Step[]).filter((k) => !done(s, k));
   const lines = [
     `still missing: ${missing.join(", ") || "nothing"}`,
     `attempts so far: ${JSON.stringify(s.attempts ?? {})} (max ${MAX_ATTEMPTS} each; declined items are never pushed again)`,
     step
       ? `NEXT STEP this turn (after responding to what they said): ${step}: ${HOW[step]}. Attempt ${attempts(s, step) + 1} of ${MAX_ATTEMPTS}.${attempts(s, step) ? " You already asked once: rephrase it, don't repeat it." : ""} If they're in the middle of a task, finish helping first and weave this in at the end. If you already asked them a question about their task this turn, hold the onboarding step for next turn (never two questions in one turn). Report it in "asked".`
-      : canGraduate(s)
+      : hold
+        ? "HOLD this turn: your previous reply already asked them something they haven't answered yet. Don't start an onboarding step or ask a new question."
+        : canGraduate(s)
         ? "Every onboarding item is collected, attempted twice, or declined: include graduate this turn (with a short warm 'you're set' tied to their need)."
         : "No onboarding step to push this turn.",
     "Only say \"you're all set\" when you graduate.",

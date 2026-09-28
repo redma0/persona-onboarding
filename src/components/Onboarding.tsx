@@ -225,7 +225,9 @@ function Onboarding() {
 
   const runAgent = useCallback(async (ev: AgentEvent): Promise<void> => {
     if (busy.current) {
-      if (!pending.current || pending.current.type === "user_message" || pending.current.type === "nudge") pending.current = ev;
+      // a text that arrives mid-reply "crosses" it: the follow-up turn must not stack a second question
+      const next: AgentEvent = ev.type === "user_message" ? { type: "user_message", crossed: true } : ev;
+      if (!pending.current || pending.current.type === "user_message" || pending.current.type === "nudge") pending.current = next;
       return;
     }
     busy.current = true;

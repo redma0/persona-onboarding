@@ -33,7 +33,7 @@ export interface ChatItem {
 
 /** Events the client reports to the text agent (besides user messages). */
 export type AgentEvent =
-  | { type: "user_message" }
+  | { type: "user_message"; crossed?: boolean }
   | { type: "first_contact" }
   | { type: "call_ended"; reason: string; durationSec: number; transcript: string }
   | { type: "call_declined" }

@@ -44,7 +44,9 @@ function renderThread(items: ChatItem[]) {
 function describeEvent(e: AgentEvent) {
   switch (e.type) {
     case "user_message":
-      return "The user just texted (see the end of the thread). Reply to them.";
+      return e.crossed
+        ? "The user sent their latest text(s) while your previous reply was still being written, so the messages crossed (in the thread they may appear just before your last bubbles). Reply only to what's genuinely new in them, briefly. Don't repeat or re-ask anything you just said. If nothing needs a reply (filler, a duplicate, or already covered by your last reply), return an empty messages array."
+        : "The user just texted (see the end of the thread). Reply to them.";
     case "call_ended":
       return `call_ended — reason: ${e.reason}; duration: ${e.durationSec}s.\nCall transcript:\n${e.transcript || "(nothing was said)"}`;
     case "call_failed":
@@ -136,7 +138,7 @@ export async function runTextAgent(
   gmail?: GmailCtx,
 ): Promise<AgentReply | null> {
   const caps = `Tools available now: web_search (live web)${gmail ? ", gmail_search + gmail_read (their real inbox), calendar_events (their real calendar). Today is " + new Date().toDateString() : " (Gmail/Calendar tools unavailable: not connected)"}.`;
-  const user = `<channel>${CHANNEL_NOTE[channel]} ${caps}</channel>\n\n<state>\n${describeState(state)}\n</state>\n\n<onboarding_plan>\n${planForPrompt(state)}\n</onboarding_plan>\n\n<thread>\n${renderThread(items)}\n</thread>\n\n<event>\n${describeEvent(event)}\n</event>\n\nWrite your next turn.`;
+  const user = `<channel>${CHANNEL_NOTE[channel]} ${caps}</channel>\n\n<state>\n${describeState(state)}\n</state>\n\n<onboarding_plan>\n${planForPrompt(state, event.type === "user_message" && !!event.crossed)}\n</onboarding_plan>\n\n<thread>\n${renderThread(items)}\n</thread>\n\n<event>\n${describeEvent(event)}\n</event>\n\nWrite your next turn.`;
   // Keep the tool list identical on every call so tools+system stay in the prompt cache.
   const tools: Anthropic.Messages.ToolUnion[] = [{ type: "web_search_20260209", name: "web_search", max_uses: 2 }, ...GMAIL_TOOLS];
   const usage = { input: 0, cacheRead: 0, cacheWrite: 0, output: 0, searches: 0 };
@@ -187,11 +189,18 @@ function tidyBubbles(msgs: string[]): string[] {
   const out: string[] = [];
   for (const m of msgs) {
     const urls = m.match(/https?:\/\/\S+/g) ?? [];
-    const text = m.replace(/https?:\/\/\S+/g, "").replace(/\s+([.,;:!?])/g, "$1").replace(/[:\s]+$/, "").trim();
+    const text = m.replace(/https?:\/\/\S+/g, "").replace(/\s*[—–]\s*/g, ", ").replace(/\s+([.,;:!?])/g, "$1").replace(/[:\s]+$/, "").trim();
     for (const part of splitLong(text)) if (part) out.push(part);
-    for (const u of urls) out.push(u.replace(/[.,;:!?)]+$/, ""));
+    for (const u of urls) out.push(stripTracking(u.replace(/[.,;:!?)]+$/, "")));
   }
   return out;
+}
+function stripTracking(u: string): string {
+  try {
+    const url = new URL(u);
+    for (const k of [...url.searchParams.keys()]) if (/^(utm_|fbclid|gclid|mc_)/i.test(k)) url.searchParams.delete(k);
+    return url.toString();
+  } catch { return u; }
 }
 function splitLong(t: string): string[] {
   const words = t.split(/\s+/).filter(Boolean).length;
