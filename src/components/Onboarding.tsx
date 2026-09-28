@@ -499,6 +499,8 @@ function Onboarding() {
       if (raw) {
         const d = JSON.parse(raw);
         stateRef.current = { ...initialState(), ...d.state };
+        // a voice we've since retired → fall back to the default
+        if (!VOICES.some((v) => v.id === stateRef.current.voiceId)) stateRef.current.voiceId = VOICES[0].id;
         itemsRef.current = d.items ?? [];
         setStateRaw(stateRef.current);
         setItemsRaw(itemsRef.current);

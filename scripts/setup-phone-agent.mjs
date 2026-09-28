@@ -63,7 +63,7 @@ async function main() {
     },
     tts: {
       model_id: "eleven_v4_turbo",
-      voice_id: "cgSgspJ2msm6clMCkdW9",
+      voice_id: "kdmDKE6EkgrWrrykO9Qt",
       stability: 0.45, similarity_boost: 0.8, speed: 1.02,
       expressive_mode: false,
       suggested_audio_tags: [],

@@ -102,7 +102,7 @@ async function main() {
     },
     tts: {
       model_id: process.env.TTS_MODEL || "eleven_v4_turbo",
-      voice_id: process.env.VOICE_ID || "cgSgspJ2msm6clMCkdW9",
+      voice_id: process.env.VOICE_ID || "kdmDKE6EkgrWrrykO9Qt",
       stability: 0.45,
       similarity_boost: 0.8,
       speed: 1.02,

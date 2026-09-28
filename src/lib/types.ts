@@ -63,17 +63,17 @@ export interface AgentReply {
 }
 
 export const VOICES = [
-  { id: "cgSgspJ2msm6clMCkdW9", label: "Jessica", desc: "bright, warm" },
-  { id: "ljX1ZrXuDIIRVcmiVSyR", label: "Michael", desc: "genuine, approachable" },
-  { id: "iP95p4xoKVk53GoZ742B", label: "Chris", desc: "down-to-earth" },
-  { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah", desc: "calm, reassuring" },
+  { id: "kdmDKE6EkgrWrrykO9Qt", label: "Alexandra", desc: "conversational, natural" },
+  { id: "Fahco4VZzobUeiPqni1S", label: "Archer", desc: "calm, british" },
   { id: "SAz9YHcvj6GT2YYXdXww", label: "River", desc: "relaxed, neutral" },
+  { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah", desc: "calm, reassuring" },
+  { id: "iP95p4xoKVk53GoZ742B", label: "Chris", desc: "down-to-earth" },
 ];
 
 /** Default voice for the gender the agent's name suggests. */
 export const VOICE_FOR: Record<"male" | "female" | "neutral", string> = {
-  male: "iP95p4xoKVk53GoZ742B", // Chris
-  female: "cgSgspJ2msm6clMCkdW9", // Jessica
+  male: "Fahco4VZzobUeiPqni1S", // Archer
+  female: "kdmDKE6EkgrWrrykO9Qt", // Alexandra
   neutral: "SAz9YHcvj6GT2YYXdXww", // River
 };
 
