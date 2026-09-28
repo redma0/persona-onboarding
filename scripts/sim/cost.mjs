@@ -4,7 +4,7 @@ const PRICE = {
   "claude-sonnet-5": [2, 10, 0.1, 2.5],
   "claude-haiku-4-5": [1, 5, 0.1, 1.25],
 };
-export const meter = { total: 0, byPart: {} };
+const meter = { total: 0, byPart: {} };
 export const BUDGET = Number(process.env.SIM_BUDGET || 2);
 
 export function charge(part, model, u) {

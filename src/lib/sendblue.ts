@@ -5,7 +5,7 @@ const headers = () => ({
   "sb-api-secret-key": process.env.SENDBLUE_API_SECRET!,
   "content-type": "application/json",
 });
-export const LINE = () => process.env.SENDBLUE_NUMBER!;
+const LINE = () => process.env.SENDBLUE_NUMBER!;
 
 async function post(path: string, body: Record<string, unknown>) {
   const r = await fetch(BASE + path, { method: "POST", headers: headers(), body: JSON.stringify(body) });

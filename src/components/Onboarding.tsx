@@ -7,43 +7,34 @@ import {
 import { buildFirstMessage, buildVoicePrompt, describeState } from "@/lib/prompts";
 import { blip, startRing, stopRing } from "@/lib/ringtone";
 import { downloadVCard } from "@/lib/vcard";
-import { DynamicIsland, HomeIndicator, IBubble, ITyping, InputBar, NavBar, StatusBar, ThreadStamp } from "./ios";
-import { StartScreen } from "./persona-ui";
-import { ContactCard, GoogleLinkCard } from "./ui";
-import { AppClipCard, BandClip, BandLink } from "./band";
-import { LinkPreview, splitLinks } from "./LinkPreview";
+import { FIRST_DRAFT, GREETING, INTRO } from "@/lib/intro";
+import { cap, clean, sleep } from "@/lib/util";
+import { DynamicIsland, HomeIndicator, InputBar, NavBar, StatusBar } from "./ios";
+import { StartScreen } from "./StartScreen";
+import { Thread } from "./Thread";
+import { AppClipCard, BandClip } from "./band";
 import { award, bandUnlocked, score } from "@/lib/engagement";
 import { canGraduate, recordAsked } from "@/lib/onboarding";
 import { ActiveCall, CallPill, IncomingCall, useClock } from "./Call";
 import { SidePanel } from "./SidePanel";
 
-const STORE = "persona-onboarding-v1";
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const uid = () => Math.random().toString(36).slice(2, 10);
 const typingDelay = (t: string) => Math.min(1700, 380 + t.length * 17);
-const clean = (s: string | null | undefined, max = 30) => (s ? s.trim().replace(/^["']|["']$/g, "").slice(0, max) || undefined : undefined);
-const cap = (s?: string) => (s ? s.replace(/(^|[\s-])(\p{Ll})/gu, (m, a, b) => a + b.toUpperCase()) : s);
 const stripTags = (t: string) => t.replace(/\[[^\]]{1,30}\]\s*/g, "").trim();
 
-const INTRO = [
-  "hey! i'm your new personal assistant",
-  "you can text me or call me anytime and i can help with:\n📞 talking things through on a quick call\n💻 digging through the web for answers\n🛍️ finding and comparing stuff to buy\n✉️ sorting your email and calendar\n🚗 finding DoorDash or Uber options",
-  "first things first, what should my name be?",
-];
-const FIRST_DRAFT = "Hey, what's a persona?";
-const GREETING = /^\s*(hi+|hey+|hello+|yo+|sup|hiya|howdy)?[\s,!.]*((what'?s|what is|who'?s|who is) (a |an |this|that|up|persona|you)[\w\s]*)?[\s?!.👋]*$/i;
+const STORE = "persona-onboarding-v1";
 
 type CallUI = "none" | "incoming" | "active";
 
-export default function OnboardingRoot({ googleConfigured }: { googleConfigured: boolean }) {
+export default function OnboardingRoot() {
   return (
     <ConversationProvider>
-      <Onboarding googleConfigured={googleConfigured} />
+      <Onboarding />
     </ConversationProvider>
   );
 }
 
-function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
+function Onboarding() {
   const convo = useConversation();
 
   // ---------- persistent state (refs mirror state so async callbacks never go stale) ----------
@@ -130,8 +121,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   const graduate = useCallback(() => {
     if (stateRef.current.graduated) return;
     patch((s) => award({ ...s, graduated: true }, "graduated"));
-    addItem({ role: "system", kind: "divider", text: "you're all set" });
-  }, [patch, addItem]);
+  }, [patch]);
 
   const summarizing = useRef(false);
   const runInboxSummary = useCallback(async () => {
@@ -448,6 +438,12 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
   };
 
   // ---------- Google connect ----------
+  const openGoogleDemo = () => {
+    setGoogleWaiting(true);
+    const w = window.open("/connect/demo", "google-connect", "width=480,height=660");
+    if (!w) window.open("/connect/demo", "_blank");
+  };
+
   const openGoogle = () => {
     setGoogleWaiting(true);
     const w = window.open("/api/google/start", "google-connect", "width=480,height=660");
@@ -605,8 +601,6 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [items.length, typing]);
 
-  const lastLinkId = [...items].reverse().find((i) => i.kind === "google_link")?.id;
-  const lastUserIdx = items.map((i) => i.role === "user" && i.kind === "text").lastIndexOf(true);
   const callClock = useClock(connected ? startedAt : undefined);
   const name = state.agentName;
 
@@ -638,53 +632,19 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
 
         {callUI === "active" && minimized && <div className="sm:hidden"><CallPill name={name} startedAt={connected ? startedAt : undefined} onClick={() => setMinimized(false)} /></div>}
 
-        {/* thread */}
-        <div ref={scroller} className="absolute inset-0 overflow-y-auto no-scrollbar px-[16px] pt-[calc(max(env(safe-area-inset-top),14px)+96px)] sm:pt-[150px] pb-[96px] flex flex-col">
-          <ThreadStamp top="iMessage" bottom={`Today ${hydrated ? new Date(items[0]?.at ?? now0).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : ""}`} />
-          {items.map((it, idx) => {
-            const next = items[idx + 1];
-            const prev = items[idx - 1];
-            const tail = !next || next.role !== it.role || !["text", "band_card"].includes(next.kind);
-            const gap = !prev ? "" : prev.role !== it.role || prev.kind !== it.kind ? "mt-[10px]" : "mt-[2px]";
-            const isLastUser = idx === lastUserIdx;
-            return (
-              <div key={it.id} className={gap}>
-                {it.kind === "text" && (() => {
-                  // agent links render like iMessage: the text, then a rich preview card per URL
-                  const { rest, urls } = it.role === "agent" ? splitLinks(it.text || "") : { rest: it.text || "", urls: [] as string[] };
-                  return (
-                    <>
-                      {rest && <IBubble text={rest} me={it.role === "user"} tail={tail && !urls.length} />}
-                      {urls.map((u, k) => (
-                        <div key={u} className={rest || k ? "mt-[2px]" : ""}><LinkPreview url={u} tail={tail && k === urls.length - 1} /></div>
-                      ))}
-                    </>
-                  );
-                })()}
-                {isLastUser && (
-                  <div className="text-right text-[11px] leading-[13px] text-[#8e8e93] mt-[3px] mr-[4px] fade-in">
-                    {items.slice(idx + 1).some((x) => x.role === "agent") || typing ? "Read" : "Delivered"}
-                  </div>
-                )}
-                {it.kind === "contact_card" && (
-                  <ContactCard name={it.text!} saved={contactSaved} onSave={() => { downloadVCard(it.text!); setContactSaved(true); }} />
-                )}
-                {it.kind === "google_link" && (
-                  <GoogleLinkCard
-                    onConnect={openGoogle}
-                    onDemo={() => { setGoogleWaiting(true); const w = window.open("/connect/demo", "google-connect", "width=480,height=660"); if (!w) window.open("/connect/demo", "_blank"); }}
-                    state={state.google.status === "connected" ? "connected" : googleWaiting && it.id === lastLinkId ? "waiting" : "idle"}
-                  />
-                )}
-                {it.kind === "band_card" && (
-                  <BandLink onOpen={() => setBandSheet("card")} />
-                )}
-                {it.kind === "call_log" && <ThreadStamp bottom={it.text!} />}
-              </div>
-            );
-          })}
-          {typing && <div className="mt-[10px] mb-[4px]"><ITyping /></div>}
-        </div>
+        <Thread
+          ref={scroller}
+          items={items}
+          state={state}
+          typing={typing}
+          startedAt={hydrated ? now0 : null}
+          googleWaiting={googleWaiting}
+          contactSaved={contactSaved}
+          onSaveContact={(n) => { downloadVCard(n); setContactSaved(true); }}
+          onConnectGoogle={openGoogle}
+          onDemoGoogle={openGoogleDemo}
+          onOpenBand={() => setBandSheet("card")}
+        />
 
         {started && <InputBar ref={composer} value={draft} onChange={setDraft} onSend={() => send()} />}
         <AppClipCard open={bandSheet === "card"} onClose={() => setBandSheet((v) => (v === "card" ? null : v))} onView={() => setBandSheet("clip")} />
@@ -713,7 +673,6 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
       </div>
       <SidePanel
         state={state}
-        googleConfigured={googleConfigured}
         voices={VOICES}
         onVoice={(id) => patch((s) => ({ ...s, voiceId: id, voiceLocked: true }))}
         onReset={reset}

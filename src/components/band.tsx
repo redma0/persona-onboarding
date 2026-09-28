@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 const B = "/persona/band";
-export const BAND_URL = "https://yourpersona.com/band";
+const BAND_URL = "https://yourpersona.com/band";
 
 const COLORS = [
   { id: "knit-black", label: "Carbone Black", material: "Knit", dot: `${B}/dot-knit-black.webp`, img: `${B}/knit-black.webp` },

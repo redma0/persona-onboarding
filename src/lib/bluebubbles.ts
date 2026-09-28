@@ -8,7 +8,7 @@ async function base() {
 }
 const pw = () => encodeURIComponent(process.env.BLUEBUBBLES_PASSWORD || "");
 
-export async function chatGuidFor(address: string) {
+async function chatGuidFor(address: string) {
   return (await redis.get<string>(`cg:${address}`)) || `iMessage;-;${address}`;
 }
 

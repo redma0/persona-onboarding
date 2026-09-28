@@ -1,21 +1,19 @@
 // iMessage channel: per-phone state in Redis, text agent via Sendblue, real calls via Twilio + ElevenLabs.
 import crypto from "crypto";
+import { cap, clean, sleep } from "./util";
 import { redis, withLock } from "./db";
 import { runTextAgent, inboxDigest } from "./agent";
 import { sendMedia, sendText, sendTyping } from "./sendblue";
 import { placeCall, twilioConfigured } from "./twilio";
-import { freshAccessToken, seal, unseal, type GoogleSession, googleConfigured } from "./session";
+import { freshAccessToken, seal, unseal, type GoogleSession } from "./session";
 import { canGraduate, recordAsked } from "./onboarding";
 import { initialState, VOICE_FOR, type AgentEvent, type AgentReply, type ChatItem, type OnboardingState } from "./types";
 
 export const APP = () => process.env.APP_URL || "https://persona-onboarding-riyad.vercel.app";
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const uid = () => crypto.randomBytes(9).toString("base64url");
 const typingDelay = (t: string) => Math.min(2200, 600 + t.length * 22);
-const clean = (s: string | null | undefined, max = 30) => (s ? s.trim().replace(/^["']|["']$/g, "").slice(0, max) || undefined : undefined);
-const cap = (s?: string) => (s ? s.replace(/(^|[\s-])(\p{Ll})/gu, (_m, a, b) => a + b.toUpperCase()) : s);
 
-export interface CallRecord {
+interface CallRecord {
   id: string;
   sid?: string;
   status: "ringing" | "active" | "done";
@@ -186,7 +184,7 @@ export async function sendGoogleLink(phone: string) {
   });
 }
 
-export async function inboxSummary(phone: string) {
+async function inboxSummary(phone: string) {
   const u = await load(phone);
   if (!u || u.state.summarySent || u.state.google.status !== "connected") return;
   await update(phone, (x) => { x.state.summarySent = true; });
@@ -221,7 +219,7 @@ export async function onGoogleConnected(phone: string, p: { email: string; name?
 
 // ---------------------------------------------------------------- calls
 
-export async function startCall(phone: string) {
+async function startCall(phone: string) {
   const u = await load(phone);
   if (!u || (u.call && u.call.status !== "done")) return;
   const id = uid();
@@ -263,7 +261,6 @@ export async function phoneForCall(callId: string | null) {
   return callId ? await redis.get<string>(`call:${callId}`) : null;
 }
 
-export const googleMode = () => (googleConfigured() ? "live" : "demo");
 
 /** One gentle nudge if they go quiet mid-onboarding with a question hanging. */
 export async function scheduleNudge(phone: string) {

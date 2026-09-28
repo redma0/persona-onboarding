@@ -35,7 +35,6 @@ function renderThread(items: ChatItem[]) {
       if (i.kind === "contact_card") return "[you sent your contact card]";
       if (i.kind === "google_link") return "[you sent the Connect with Google link]";
       if (i.kind === "call_log") return `[call: ${i.text}]`;
-      if (i.kind === "divider") return `[${i.text}]`;
       if (i.kind === "band_card") return "[you sent the Persona Band card]";
       return `${i.role === "user" ? "USER" : "YOU"}: ${i.text}`;
     })
@@ -184,7 +183,7 @@ export async function runTextAgent(
 }
 
 /** Texts, not paragraphs: pull links into their own bubble and split any bubble over ~40 words at a sentence break. */
-export function tidyBubbles(msgs: string[]): string[] {
+function tidyBubbles(msgs: string[]): string[] {
   const out: string[] = [];
   for (const m of msgs) {
     const urls = m.match(/https?:\/\/\S+/g) ?? [];

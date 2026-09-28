@@ -1,5 +1,5 @@
-export type GoogleStatus = "none" | "link_sent" | "connected";
-export type CallStatus = "never" | "ringing" | "active" | "ended" | "declined" | "missed" | "failed";
+type GoogleStatus = "none" | "link_sent" | "connected";
+type CallStatus = "never" | "ringing" | "active" | "ended" | "declined" | "missed" | "failed";
 
 export interface OnboardingState {
   agentName?: string;
@@ -21,7 +21,7 @@ export interface OnboardingState {
   attempts?: Partial<Record<"agent_name" | "call" | "user_name" | "help_need" | "google", number>>;
 }
 
-export type ItemKind = "text" | "contact_card" | "google_link" | "call_log" | "divider" | "band_card";
+type ItemKind = "text" | "contact_card" | "google_link" | "call_log" | "band_card";
 
 export interface ChatItem {
   id: string;
@@ -43,7 +43,7 @@ export type AgentEvent =
   | { type: "nudge" }
   | { type: "band_moment"; score: number };
 
-export type AgentAction = "send_contact_card" | "start_call" | "send_google_link" | "graduate" | "send_inbox_summary" | "send_band";
+type AgentAction = "send_contact_card" | "start_call" | "send_google_link" | "graduate" | "send_inbox_summary" | "send_band";
 
 export interface AgentReply {
   messages: string[];

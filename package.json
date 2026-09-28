@@ -1,12 +1,18 @@
 {
-  "name": "app",
+  "name": "persona-onboarding",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:agents": "node --env-file=.env.local scripts/setup-agent.mjs && node --env-file=.env.local scripts/setup-phone-agent.mjs",
+    "sim:text": "node --env-file=.env.local scripts/sim/text-sim.mjs",
+    "sim:voice": "tsx --env-file=.env.local scripts/sim/voice-sim.ts",
+    "sim:band": "node --env-file=.env.local scripts/sim/band-cta.mjs",
+    "chats": "node --env-file=.env.local scripts/chats.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
@@ -25,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

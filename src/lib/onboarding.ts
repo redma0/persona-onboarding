@@ -3,11 +3,11 @@
 import type { OnboardingState } from "./types";
 
 export type Step = "agent_name" | "call" | "user_name" | "help_need" | "google";
-export const MAX_ATTEMPTS = 2;
+const MAX_ATTEMPTS = 2;
 
 const attempts = (s: OnboardingState, k: Step) => s.attempts?.[k] ?? 0;
 
-export function done(s: OnboardingState, k: Step): boolean {
+function done(s: OnboardingState, k: Step): boolean {
   switch (k) {
     case "agent_name": return !!s.agentName;
     case "user_name": return !!s.userName;
@@ -24,13 +24,13 @@ function blocked(s: OnboardingState, k: Step): boolean {
 }
 
 /** Items still open: not collected, not declined, and not yet attempted MAX_ATTEMPTS times. */
-export function open(s: OnboardingState): Step[] {
+function open(s: OnboardingState): Step[] {
   // the call collects name/need/google, so offer it right after naming; then fall back to text
   const order: Step[] = ["agent_name", "call", "user_name", "help_need", "google"];
   return order.filter((k) => !done(s, k) && !blocked(s, k) && attempts(s, k) < MAX_ATTEMPTS);
 }
 
-export function nextStep(s: OnboardingState): Step | null {
+function nextStep(s: OnboardingState): Step | null {
   if (s.graduated) return null;
   // round-robin: every open item gets one attempt before any item gets a second
   const o = open(s).sort((a, b) => attempts(s, a) - attempts(s, b));

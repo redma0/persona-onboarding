@@ -1,18 +1,6 @@
 "use client";
 import { Logo } from "./brand";
 
-/** The assistant's avatar: Persona mark in a white circle (same before and after naming). */
-export function AgentAvatar({ size = 48, className = "" }: { size?: number; className?: string }) {
-  return (
-    <div
-      className={`grid place-items-center rounded-full bg-white text-black shadow-[0_0_0_0.5px_rgba(0,0,0,0.12)] shrink-0 ${className}`}
-      style={{ width: size, height: size }}
-    >
-      <Logo size={size * 0.54} />
-    </div>
-  );
-}
-
 /** Mirrors yourpersona.com/start, rendered inside the phone. */
 export function StartScreen({ onContinue }: { onContinue: () => void }) {
   return (

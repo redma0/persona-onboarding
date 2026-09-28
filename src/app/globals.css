@@ -1,38 +1,33 @@
 @import "tailwindcss";
 
+/* Page is always light, like yourpersona.com. iOS system colors for the phone UI. */
 :root {
   color-scheme: light;
   --page: #ffffff;
-  --page-ink: #1b1b1a;
+  --ink: #1b1b1a;
   --muted: #8a8a8e;
-  --screen: #ffffff;
+  --hairline: rgba(0, 0, 0, 0.09);
+  --panel: #f6f6f4;
   --bubble-them: #e9e9eb;
   --bubble-them-ink: #000;
-  --bubble-me: #007aff;
-  --bubble-me-ink: #fff;
-  --hairline: rgba(0, 0, 0, 0.09);
-  --card: rgba(118, 118, 128, 0.12);
-  --panel: #f6f6f4;
+  --ios-blue: #0088ff;
 }
-
 
 @theme inline {
   --color-page: var(--page);
-  --color-ink: var(--page-ink);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
-  --color-screen: var(--screen);
+  --color-hairline: var(--hairline);
+  --color-panel: var(--panel);
   --color-them: var(--bubble-them);
   --color-them-ink: var(--bubble-them-ink);
-  --color-me: var(--bubble-me);
-  --color-hairline: var(--hairline);
-  --color-card: var(--card);
-  --color-panel: var(--panel);
+  --color-me: var(--ios-blue);
 }
 
 html,
 body {
   background: var(--page);
-  color: var(--page-ink);
+  color: var(--ink);
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
@@ -43,14 +38,6 @@ body {
   to { opacity: 1; transform: none; }
 }
 .pop-in { animation: pop-in 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
-
-@keyframes dot {
-  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
-  30% { opacity: 1; transform: translateY(-2px); }
-}
-.typing-dot { animation: dot 1.2s infinite; }
-.typing-dot:nth-child(2) { animation-delay: 0.15s; }
-.typing-dot:nth-child(3) { animation-delay: 0.3s; }
 
 @keyframes slide-up {
   from { transform: translateY(100%); }
@@ -63,12 +50,6 @@ body {
   to { transform: none; opacity: 1; }
 }
 .slide-down { animation: slide-down 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
-
-@keyframes pulse-ring {
-  0% { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(1.9); opacity: 0; }
-}
-.pulse-ring { animation: pulse-ring 1.8s ease-out infinite; }
 
 @keyframes fade-in {
   from { opacity: 0; }

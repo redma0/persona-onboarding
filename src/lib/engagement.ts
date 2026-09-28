@@ -28,8 +28,3 @@ export function award(s: OnboardingState, key: EngagementKey): OnboardingState {
 
 export const score = (s: OnboardingState) => s.engagement?.points ?? 0;
 export const bandUnlocked = (s: OnboardingState) => score(s) >= BAND_THRESHOLD && !s.bandShown && !s.declined.band;
-
-export function describeEngagement(s: OnboardingState) {
-  const c = s.engagement?.counts ?? {};
-  return Object.entries(c).map(([k, n]) => `${RULES[k]?.label ?? k}${n > 1 ? ` ×${n}` : ""}`).join(", ") || "nothing yet";
-}

@@ -2,8 +2,8 @@
 // iOS 26 call UI: incoming full-screen call, in-call controls (Liquid Glass), notification banner.
 import { useEffect, useRef, useState } from "react";
 import { useConversation } from "@elevenlabs/react";
-import { GoogleG, PhoneIcon } from "./ui";
-import { AgentAvatar } from "./persona-ui";
+import { GoogleG, PhoneIcon } from "./icons";
+import { AgentAvatar } from "./brand";
 import { Glass } from "./ios";
 import { Logo } from "./brand";
 
@@ -84,8 +84,6 @@ export function IncomingCall({ name, onAccept, onDecline }: { name?: string; onA
         <div className="text-[15px] text-white/60 tracking-[-0.2px]">Persona</div>
         <div className="mt-[2px] text-[42px] leading-[1.05] font-semibold tracking-[-1.2px]">{name || "Persona"}</div>
         <div className="relative mt-[70px]">
-          <span className="absolute inset-0 rounded-full bg-white/20 pulse-ring" />
-          <span className="absolute inset-0 rounded-full bg-white/20 pulse-ring" style={{ animationDelay: "0.9s" }} />
           <AgentAvatar size={128} className="relative" />
         </div>
         <div className="mt-auto w-full px-[46px]">
@@ -130,10 +128,11 @@ export function ActiveCall({
     const loop = () => {
       let target = 0;
       try { target = connected ? convo.getOutputVolume() : 0; } catch {}
-      v += (target - v) * 0.25;
+      // slow easing + small range: a gentle breathe while it talks, not a per-syllable flicker
+      v += (target - v) * 0.06;
       if (glow.current) {
-        glow.current.style.transform = `scale(${1 + Math.min(v * 1.6, 0.5)})`;
-        glow.current.style.opacity = String(0.15 + Math.min(v * 2, 0.55));
+        glow.current.style.transform = `scale(${1 + Math.min(v * 0.5, 0.12)})`;
+        glow.current.style.opacity = String(0.12 + Math.min(v * 0.6, 0.18));
       }
       raf = requestAnimationFrame(loop);
     };
