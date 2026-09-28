@@ -52,7 +52,7 @@ In testing, it pitched in 7 of 7 Band moments, stayed quiet in 3 of 3 non-moment
 |---|---|---|
 | Text agent | `src/lib/agent.ts`, `/api/chat` | Claude Opus 5.5 with structured output (bubbles, collected fields, actions). Only the bubbles reach the user. Tool loop: web search + Gmail/Calendar. Prompt-cached. |
 | Onboarding plan | `src/lib/onboarding.ts` | What's missing, the next step (round-robin, max 2 attempts, declines respected), and when graduation is allowed. |
-| Voice call | `src/components/Call.tsx` | ElevenLabs Agents over WebRTC in the browser, Eleven v3 Conversational voice, Claude Sonnet 5. A per-call prompt is built from the conversation; in-call tools send the Google link, save your name and need, and check status. Agents require a server-issued token. |
+| Voice call | `src/components/Call.tsx` | ElevenLabs Agents over WebRTC in the browser, Eleven v4 Turbo voice, Claude Sonnet 5. A per-call prompt is built from the conversation; in-call tools send the Google link, save your name and need, and check status. Agents require a server-issued token. |
 | Shared state | `src/components/Onboarding.tsx` | One state object drives both the text and voice sides. Call outcomes become events for the text agent. |
 | Google | `/api/google/*` | OAuth (read-only scopes), tokens in an encrypted http-only cookie. If Google blocks an unapproved tester, a clearly labeled demo sign-in keeps the flow completable. |
 | iOS 26 UI | `src/components/ios.tsx`, `Thread.tsx`, `cards.tsx` | Liquid Glass nav and input, bubble tails, Delivered/Read, typing indicator, Dynamic Island live-call pill, iMessage link previews (`/api/unfurl` with generated fallback cards). |
