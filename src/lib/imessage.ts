@@ -162,7 +162,7 @@ async function deliver(phone: string, reply: AgentReply, ev: AgentEvent) {
     await update(phone, (x) => { x.state.bandShown = true; x.items.push(item({ role: "agent", kind: "band_card" })); });
   }
   if (!s.graduated && (canGraduate(s) || (acts.has("graduate") && reply.skip_setup && s.agentName))) await update(phone, (x) => { x.state.graduated = true; });
-  if ((acts.has("send_inbox_summary") || ev.type === "google_connected" || ev.type === "call_ended") && s.google.status === "connected" && !s.summarySent) {
+  if (acts.has("send_inbox_summary") && s.google.status === "connected" && !s.summarySent) {
     await sleep(800);
     await inboxSummary(phone);
   }

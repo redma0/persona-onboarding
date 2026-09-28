@@ -226,10 +226,8 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     if (ev.type === "user_message" && reply.band_moment && bandUnlocked(stateRef.current)) {
       bandEventRef.current(score(stateRef.current));
     }
-    if (
-      (acts.has("send_inbox_summary") || ev.type === "google_connected" || ev.type === "call_ended") &&
-      stateRef.current.google.status === "connected" && !stateRef.current.summarySent && callUIRef.current === "none"
-    ) {
+    // the inbox is only read after the user says yes (the agent includes send_inbox_summary then)
+    if (acts.has("send_inbox_summary") && stateRef.current.google.status === "connected" && !stateRef.current.summarySent && callUIRef.current === "none") {
       await sleep(600);
       await runInboxSummary();
     }
@@ -476,7 +474,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     setBanner(false);
     if (callUIRef.current === "active" && connectedRef.current) {
       convo.sendContextualUpdate(
-        `Google just connected successfully (${p.email}${p.name ? `, name on the account: ${p.name}` : ""}). Acknowledge it briefly and naturally, then continue. If you don't know their name yet you can confirm it ("is it ${p.name ?? "..."}?").`,
+        `Google just connected successfully (${p.email}${p.name ? `, name on the account: ${p.name}` : ""}). Acknowledge it briefly and naturally, then continue. Don't read or promise to read their inbox unless they say yes; you can ask if they'd like a quick look after the call. If you don't know their name yet you can confirm it ("is it ${p.name ?? "..."}?").`,
       );
     } else {
       void runAgent({ type: "google_connected" });
