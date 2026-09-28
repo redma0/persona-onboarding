@@ -1,0 +1,40 @@
+name: PersonaDemo
+options:
+  bundleIdPrefix: com.personademo
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    GENERATE_INFOPLIST_FILE: YES
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  PersonaDemo:
+    type: application
+    platform: iOS
+    sources: [App]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.personademo.app
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Persona
+    dependencies:
+      - target: PersonaDemoClip
+  PersonaDemoClip:
+    type: application.on-demand-install-capable
+    platform: iOS
+    sources: [Clip]
+    entitlements:
+      path: Clip/Clip.entitlements
+      properties:
+        com.apple.developer.parent-application-identifiers: [$(AppIdentifierPrefix)com.personademo.app]
+        com.apple.developer.on-demand-install-capable: true
+        com.apple.developer.in-app-payments: [merchant.com.personademo]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.personademo.app.Clip
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Persona

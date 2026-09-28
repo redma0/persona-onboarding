@@ -119,6 +119,8 @@ async function main() {
     conversation: { max_duration_seconds: 600 },
   };
   const platform_settings = {
+    // only sessions started with a server-issued token (never just the agent id)
+    auth: { enable_auth: true },
     overrides: {
       conversation_config_override: {
         agent: { prompt: { prompt: true }, first_message: true },
