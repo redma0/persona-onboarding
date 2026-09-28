@@ -175,11 +175,38 @@ export async function runTextAgent(
     const out = res.parsed_output as (AgentReply & { usage?: typeof usage }) | null;
     if (!out) return null;
     out.usage = usage;
-    const msgs = out.messages.map((m) => m.trim().replace(/^[.,;:]+\s*/, "")).filter((m) => m && !INTERNAL.test(m));
+    const msgs = tidyBubbles(out.messages.map((m) => m.trim().replace(/^[.,;:]+\s*/, "")).filter((m) => m && !INTERNAL.test(m)));
     out.messages = msgs.length > 4 ? [...msgs.slice(0, 3), msgs.slice(3).join("\n\n")] : msgs;
     return out;
   }
   return null;
+}
+
+/** Texts, not paragraphs: pull links into their own bubble and split any bubble over ~40 words at a sentence break. */
+export function tidyBubbles(msgs: string[]): string[] {
+  const out: string[] = [];
+  for (const m of msgs) {
+    const urls = m.match(/https?:\/\/\S+/g) ?? [];
+    const text = m.replace(/https?:\/\/\S+/g, "").replace(/\s+([.,;:!?])/g, "$1").replace(/[:\s]+$/, "").trim();
+    for (const part of splitLong(text)) if (part) out.push(part);
+    for (const u of urls) out.push(u.replace(/[.,;:!?)]+$/, ""));
+  }
+  return out;
+}
+function splitLong(t: string): string[] {
+  const words = t.split(/\s+/).filter(Boolean).length;
+  if (words <= 40) return [t];
+  // real sentence breaks only: punctuation + space + next sentence (so "$888.11" and "point.me" stay intact)
+  const sentences = t.split(/(?<=[.!?])\s+(?=[a-z("'$0-9])/i).map((x) => x.trim()).filter(Boolean);
+  if (sentences.length < 2) return [t];
+  let first = "";
+  let k = 0;
+  while (k < sentences.length - 1 && (first ? `${first} ${sentences[k]}` : sentences[k]).split(/\s+/).length <= Math.ceil(words / 2) + 5) {
+    first = first ? `${first} ${sentences[k]}` : sentences[k];
+    k++;
+  }
+  if (!first) { first = sentences[0]; k = 1; }
+  return [first, ...splitLong(sentences.slice(k).join(" "))];
 }
 
 const Digest = z.object({ messages: z.array(z.string()) });
@@ -209,8 +236,8 @@ export async function inboxDigest(
     model: MODEL,
     max_tokens: 3000,
     output_config: { effort: "low", format: zodOutputFormat(Digest) },
-    system: `You are ${ctx.agentName || "a personal assistant"}, texting ${ctx.userName || "the user"} a first look at their inbox right after they connected Gmail. Style: lowercase, casual, warm, like a text from a sharp friend. 2–3 short text bubbles total. First bubble: the headline (what actually needs them). Then the 2–4 things that matter most, naming senders plainly. Skip newsletters/receipts/noise unless relevant. Tie it to what they said they need help with if possible: "${ctx.helpNeed || "unknown"}". End with one short offer of something concrete you could do next (a question). No markdown, no headers. Never invent emails that aren't listed. If the inbox is quiet, say so nicely.`,
+    system: `You are ${ctx.agentName || "a personal assistant"}, texting ${ctx.userName || "the user"} a first look at their inbox right after they connected Gmail. Style: lowercase, casual, warm, like a text from a sharp friend. 2–3 short text bubbles total, each ≤25 words. First bubble: the one thing that actually needs them. Second: at most 2 other things worth knowing, named plainly. Skip newsletters, promos, receipts, storage and security notices unless urgent. Tie it to what they said they need help with if possible: "${ctx.helpNeed || "unknown"}". End with one short offer of something concrete you could do next (a question). No markdown, no headers. Never invent emails that aren't listed. If the inbox is quiet, say so nicely.`,
     messages: [{ role: "user", content: `Recent emails (last 3 days):\n${metas.filter(Boolean).join("\n") || "(none)"}` }],
   });
-  return res.parsed_output?.messages?.slice(0, 4) ?? [];
+  return tidyBubbles(res.parsed_output?.messages ?? []).slice(0, 4);
 }

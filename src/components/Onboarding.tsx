@@ -245,7 +245,9 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
     try {
       let reply: AgentReply | null = null;
       // research can take a while: after ~5s of silence, acknowledge like a person would
-      const ack = ev.type === "user_message" || ev.type === "call_ended" ? setTimeout(() => {
+      const lastUser = [...itemsRef.current].reverse().find((i) => i.role === "user")?.text ?? "";
+      const looksLikeTask = /\?|\b(find|search|look|book|where|what|which|how|recommend|best|compare|check|draft|write|plan|get me|can you)\b/i.test(lastUser) && lastUser.length > 12;
+      const ack = (ev.type === "user_message" && looksLikeTask) || ev.type === "call_ended" ? setTimeout(() => {
         const lines = ev.type === "call_ended" ? ["good talking! pulling that together now", "one sec, putting that together"] : ["on it, one sec", "looking now", "give me a sec, checking", "one sec, digging in"];
         void say([lines[Math.floor(Math.random() * lines.length)]]).then(() => setTyping(true));
       }, 5500) : undefined;
@@ -679,9 +681,7 @@ function Onboarding({ googleConfigured }: { googleConfigured: boolean }) {
                 {it.kind === "band_card" && (
                   <BandLink onOpen={() => setBandSheet("card")} />
                 )}
-                {(it.kind === "call_log" || it.kind === "divider") && (
-                  <ThreadStamp bottom={it.kind === "divider" ? "You're all set" : it.text!} />
-                )}
+                {it.kind === "call_log" && <ThreadStamp bottom={it.text!} />}
               </div>
             );
           })}
